@@ -1,16 +1,50 @@
-import { loadData, saveData, localDate, daysFromToday, progress, filterTasks, validTask, escapeHTML as e } from './data.js';
+import { loadData, saveData, localDate, calendarDate, daysFromToday, progress, filterTasks, validTask, escapeHTML as e } from './data.js';
 
-let data = loadData();
+let storageState = loadData();
+let data = storageState.data ?? { subjects: [], tasks: [] };
 let page = 'dashboard';
 let statusFilter = 'Todas';
-let subjectFilter = 'Todas';
+let subjectFilter = null;
 let searchQuery = '';
 let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 const pageElement = document.getElementById('page');
 const modalElement = document.getElementById('modalroot');
 
-function persist() {
-  if (!saveData(data)) alert('Não foi possível salvar os dados neste navegador. Verifique o armazenamento disponível.');
+const noticeElement = document.querySelector('.notice');
+const defaultNotice = noticeElement.textContent;
+const storageMessages = {
+  corrupt: 'Os dados salvos estão corrompidos ou são incompatíveis. Nenhum registro foi sobrescrito. Preserve uma cópia da chave trilora-v1 antes de tentar recuperá-los. As alterações estão bloqueadas; esta tela não representa os dados salvos.',
+  'read-error': 'Não foi possível ler o armazenamento deste navegador. As alterações estão bloqueadas. Verifique as permissões e recarregue a página; esta tela não representa os dados salvos.',
+  'write-error': 'Alteração não salva. O estado anterior foi mantido. Verifique o espaço e as permissões do navegador e tente novamente.',
+  conflict: 'Os dados salvos mudaram em outra aba. Esta alteração não foi salva. Recarregue a página antes de continuar.',
+  'invalid-data': 'Alteração não salva: os dados não atendem às regras de integridade. O estado anterior foi mantido.',
+};
+
+function reportStorageError(status) {
+  noticeElement.textContent = storageMessages[status];
+  noticeElement.setAttribute('role', 'alert');
+  alert(storageMessages[status]);
+}
+
+function canEdit() {
+  if (['empty', 'ready'].includes(storageState.status)) return true;
+  reportStorageError(storageState.status);
+  return false;
+}
+
+function persist(nextData) {
+  if (!canEdit()) return false;
+  const result = saveData(nextData, undefined, storageState.raw);
+  if (!result.ok) {
+    if (['corrupt', 'read-error', 'conflict'].includes(result.status)) storageState = { status: result.status };
+    reportStorageError(result.status);
+    return false;
+  }
+  data = nextData;
+  storageState = { status: 'ready', raw: result.raw };
+  noticeElement.textContent = defaultNotice;
+  noticeElement.removeAttribute('role');
+  return true;
 }
 
 function subject(id) { return data.subjects.find(s => s.id === id); }
@@ -56,7 +90,7 @@ function tasksPage() {
   return `<div class="toolbar filters">
     <input class="field" id="searchTasks" aria-label="Pesquisar tarefas" placeholder="Pesquisar tarefas..." value="${e(searchQuery)}">
     <select class="field" id="filter" aria-label="Filtrar por situação">${['Todas', 'Pendentes', 'Concluídas'].map(v => `<option ${statusFilter === v ? 'selected' : ''}>${v}</option>`).join('')}</select>
-    <select class="field" id="subjectFilter" aria-label="Filtrar por disciplina"><option value="Todas">Todas as disciplinas</option>
+    <select class="field" id="subjectFilter" aria-label="Filtrar por disciplina"><option value="" ${subjectFilter === null ? 'selected' : ''}>Todas as disciplinas</option>
     ${data.subjects.map(s => `<option value="${e(s.id)}" ${subjectFilter === s.id ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select>
     <button class="primary" data-add-task>+ Nova tarefa</button></div>
     <section class="panel" id="taskResults">${taskList(filterTasks(data.tasks, { status: statusFilter, subject: subjectFilter, query: searchQuery }))}</section>`;
@@ -64,22 +98,22 @@ function tasksPage() {
 
 function calendarPage() {
   const year = month.getFullYear(), monthIndex = month.getMonth();
-  const first = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-  const last = new Date(year, monthIndex + 1, 0).getDate();
+  const first = (calendarDate(year, monthIndex).getDay() + 6) % 7;
+  const last = calendarDate(year, monthIndex + 1, 0).getDate();
   let cells = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => `<div class="dayname">${day}</div>`).join('');
   for (let i = 0; i < Math.ceil((first + last) / 7) * 7; i++) {
     const day = i - first + 1;
-    const date = localDate(new Date(year, monthIndex, day));
+    const date = localDate(calendarDate(year, monthIndex, day));
     const outside = day < 1 || day > last;
-    const tasks = data.tasks.filter(t => t.date === date);
+    const tasks = outside ? [] : data.tasks.filter(t => t.date === date);
     cells += `<div class="day ${outside ? 'outside' : ''} ${date === localDate() ? 'today' : ''}">${outside ? '' : day}
       ${tasks.slice(0, 3).map(t => `<em title="${e(t.title)}">${e(t.title)}</em>`).join('')}
       ${tasks.length > 3 ? `<em>+${tasks.length - 3} tarefa(s)</em>` : ''}</div>`;
   }
   return `<div class="toolbar"><button class="primary" data-add-task>+ Nova tarefa</button></div><section class="panel">
-    <div class="calendarhead"><button class="secondary" data-month="-1" aria-label="Mês anterior">‹</button>
+    <div class="calendarhead"><button class="secondary" data-month="-1" aria-label="Mês anterior" ${year === 1 && monthIndex === 0 ? 'disabled' : ''}>‹</button>
     <h2>${month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
-    <button class="secondary" data-month="1" aria-label="Próximo mês">›</button></div><div class="calendar">${cells}</div></section>`;
+    <button class="secondary" data-month="1" aria-label="Próximo mês" ${year === 9999 && monthIndex === 11 ? 'disabled' : ''}>›</button></div><div class="calendar">${cells}</div></section>`;
 }
 
 function render() {
@@ -99,6 +133,7 @@ function render() {
 function closeModal() { modalElement.innerHTML = ''; }
 
 function openTaskModal(taskId = null) {
+  if (!canEdit()) return;
   if (!data.subjects.length) { alert('Cadastre uma disciplina antes de adicionar uma tarefa.'); page = 'subjects'; render(); return; }
   const task = taskId ? data.tasks.find(t => t.id === taskId) : null;
   if (taskId && !task) return;
@@ -106,7 +141,7 @@ function openTaskModal(taskId = null) {
     <h2 id="modalTitle">${task ? 'Editar tarefa' : 'Criar nova tarefa'}</h2><form class="form" id="taskForm">
     <label>Título da tarefa<input class="field" name="title" minlength="2" maxlength="120" required placeholder="Ex.: Revisar capítulo 2" value="${e(task?.title ?? '')}"></label>
     <label>Disciplina<select class="field" name="subject">${data.subjects.map(s => `<option value="${e(s.id)}" ${s.id === task?.subject ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></label>
-    <label>Prazo<input class="field" type="date" name="date" required value="${e(task?.date ?? daysFromToday(1))}"></label>
+    <label>Prazo<input class="field" type="date" name="date" min="0001-01-01" max="9999-12-31" required value="${e(task?.date ?? daysFromToday(1))}"></label>
     <label>Prioridade<select class="field" name="priority">${['Média', 'Alta', 'Baixa'].map(v => `<option ${v === (task?.priority ?? 'Média') ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
     <div class="actions"><button class="secondary" type="button" data-close>Cancelar</button><button class="primary" type="submit">${task ? 'Salvar alterações' : 'Criar tarefa'}</button></div>
     </form></div></div>`;
@@ -115,14 +150,15 @@ function openTaskModal(taskId = null) {
     const form = new FormData(event.currentTarget);
     const values = { title: String(form.get('title')).trim(), subject: String(form.get('subject')), date: String(form.get('date')), priority: String(form.get('priority')) };
     if (!validTask(values, data.subjects)) { alert('Confira o título, a disciplina, o prazo e a prioridade.'); return; }
-    if (task) Object.assign(task, values);
-    else data.tasks.push({ id: crypto.randomUUID(), ...values, done: false });
-    persist(); closeModal(); render();
+    const tasks = task ? data.tasks.map(t => t.id === task.id ? { ...t, ...values } : t) :
+      [...data.tasks, { id: crypto.randomUUID(), ...values, done: false }];
+    if (persist({ ...data, tasks })) { closeModal(); render(); }
   });
   modalElement.querySelector('input')?.focus();
 }
 
 function openSubjectModal() {
+  if (!canEdit()) return;
   modalElement.innerHTML = `<div class="overlay" id="overlay"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h2 id="modalTitle">Adicionar disciplina</h2><form class="form" id="subjectForm">
     <label>Nome da disciplina<input class="field" name="name" minlength="2" maxlength="80" required placeholder="Ex.: Cálculo I"></label>
@@ -135,8 +171,8 @@ function openSubjectModal() {
     const name = String(form.get('name')).trim();
     if (name.length < 2 || name.length > 80) { alert('Informe um nome entre 2 e 80 caracteres.'); return; }
     if (data.subjects.some(s => s.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) { alert('Essa disciplina já foi cadastrada.'); return; }
-    data.subjects.push({ id: crypto.randomUUID(), name, color: String(form.get('color')) });
-    persist(); closeModal(); render();
+    const subjects = [...data.subjects, { id: crypto.randomUUID(), name, color: String(form.get('color')) }];
+    if (persist({ ...data, subjects })) { closeModal(); render(); }
   });
   modalElement.querySelector('input')?.focus();
 }
@@ -149,12 +185,18 @@ document.addEventListener('click', event => {
   else if (button.hasAttribute('data-add-task')) openTaskModal();
   else if (button.hasAttribute('data-add-subject')) openSubjectModal();
   else if (button.dataset.editTask) openTaskModal(button.dataset.editTask);
-  else if (button.dataset.month) { month = new Date(month.getFullYear(), month.getMonth() + Number(button.dataset.month), 1); render(); }
+  else if (button.dataset.month) {
+    const next = calendarDate(month.getFullYear(), month.getMonth() + Number(button.dataset.month));
+    if (next.getFullYear() >= 1 && next.getFullYear() <= 9999) { month = next; render(); }
+  }
   else if (button.dataset.deleteTask && confirm('Excluir esta tarefa?')) {
-    data.tasks = data.tasks.filter(t => t.id !== button.dataset.deleteTask); persist(); render();
+    if (persist({ ...data, tasks: data.tasks.filter(t => t.id !== button.dataset.deleteTask) })) render();
   } else if (button.dataset.deleteSubject) {
     if (data.tasks.some(t => t.subject === button.dataset.deleteSubject)) { alert('Remova as tarefas desta disciplina antes de excluí-la.'); return; }
-    if (confirm('Excluir esta disciplina?')) { data.subjects = data.subjects.filter(s => s.id !== button.dataset.deleteSubject); persist(); render(); }
+    if (confirm('Excluir esta disciplina?') && persist({ ...data, subjects: data.subjects.filter(s => s.id !== button.dataset.deleteSubject) })) {
+      if (subjectFilter === button.dataset.deleteSubject) subjectFilter = null;
+      render();
+    }
   }
 });
 
@@ -162,9 +204,12 @@ document.addEventListener('change', event => {
   const target = event.target;
   if (target.dataset.toggle) {
     const task = data.tasks.find(t => t.id === target.dataset.toggle);
-    if (task) { task.done = target.checked; persist(); render(); }
+    if (task) {
+      if (persist({ ...data, tasks: data.tasks.map(t => t.id === task.id ? { ...t, done: target.checked } : t) })) render();
+      else target.checked = task.done;
+    }
   } else if (target.id === 'filter') { statusFilter = target.value; render(); }
-  else if (target.id === 'subjectFilter') { subjectFilter = target.value; render(); }
+  else if (target.id === 'subjectFilter') { subjectFilter = target.value === '' ? null : target.value; render(); }
 });
 
 document.addEventListener('input', event => {
@@ -176,3 +221,7 @@ document.addEventListener('input', event => {
 
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
 render();
+if (!['empty', 'ready'].includes(storageState.status)) {
+  noticeElement.textContent = storageMessages[storageState.status];
+  noticeElement.setAttribute('role', 'alert');
+}
