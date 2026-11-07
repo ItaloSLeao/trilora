@@ -14,8 +14,11 @@ ALLOWED = {
     "/index.html": ("index.html", "text/html"),
     "/js/app.js": ("js/app.js", "text/javascript"),
     "/js/data.js": ("js/data.js", "text/javascript"),
+    "/js/flashcards.js": ("js/flashcards.js", "text/javascript"),
+    "/js/flashcards-view.js": ("js/flashcards-view.js", "text/javascript"),
     "/css/style.css": ("css/style.css", "text/css"),
     "/css/improvements.css": ("css/improvements.css", "text/css"),
+    "/css/flashcards.css": ("css/flashcards.css", "text/css"),
 }
 HTML = r"""<!doctype html><meta charset="utf-8"><pre id="result">PENDING</pre>
 <script type="module">
@@ -145,6 +148,75 @@ try {
   fill(q('#subjectForm'),{name:'Conflito QA',color:'#123456'});
   q('#subjectForm').requestSubmit();
   check('gravação obsoleta preserva atualização externa', q('.notice').textContent.includes('outra aba') && data().extra.other===true && !data().subjects.some(s=>s.name==='Conflito QA'));
+
+  localStorage.setItem(key, JSON.stringify({ subjects: [], tasks: [] }));
+  await mount();
+  nav('flashcards');
+  check('flashcards sem disciplinas encaminham ao cadastro', !!q('[data-go=subjects]') && !q('[data-flash-action=new-deck]'));
+  localStorage.setItem(key, JSON.stringify(fixture));
+  await mount();
+  nav('flashcards');
+  const flash = (action, id) => click('[data-flash-action="'+action+'"]' + (id ? '[data-flash-id="'+id+'"]' : ''));
+  const dialogForm = () => q('dialog[open] form');
+  const saveFlash = values => {
+    const form = dialogForm();
+    fill(form, values);
+    form.requestSubmit();
+  };
+  flash('new-deck');
+  check('diálogo de baralho foca o nome e exige preenchimento', d.activeElement === dialogForm().elements.name && !dialogForm().checkValidity());
+  const legacyRaw = localStorage.getItem(key);
+  const storageWrite = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = () => { throw new w.DOMException('Quota','QuotaExceededError'); };
+  saveFlash({ name: 'Álgebra QA', subject: 'Todas', description: '' });
+  check('falha ao criar baralho mantém diálogo, valores e dados legados', dialogForm().elements.name.value === 'Álgebra QA' && localStorage.getItem(key) === legacyRaw);
+  w.Storage.prototype.setItem = storageWrite;
+  dialogForm().requestSubmit();
+  const deckId = data().flashcards.decks[0].id;
+  check('baralho aberto após salvar e associado à disciplina', !dialogForm() && q('[data-flash-heading]').textContent === 'Álgebra QA' && data().flashcards.decks[0].subject === 'Todas');
+  flash('new-card');
+  const question = 'Compare <a> e <b>';
+  const answer = 'Primeira linha\nSegunda linha';
+  saveFlash({ question, answer });
+  const cardId = data().flashcards.cards[0].id;
+  check('cartão mantém texto literal e exibe a quantidade', q('.flash-cards').textContent.includes(question) && q('.flash-cards').textContent.includes(answer) && q('.flash-item').textContent.includes('1 cartão'));
+  flash('edit-card', cardId);
+  check('edição preenche os campos do cartão', dialogForm().elements.question.value === question && dialogForm().elements.answer.value === answer);
+  saveFlash({ question: 'Pergunta revisada', answer: 'Resposta revisada' });
+  flash('edit-deck', deckId);
+  saveFlash({ name: 'Revisão QA', subject: 's3', description: 'Mudança de disciplina' });
+  check('edição altera textos e disciplina sem romper vínculo do cartão', data().flashcards.decks[0].id === deckId && data().flashcards.decks[0].subject === 's3' && data().flashcards.cards[0].deck === deckId && data().flashcards.cards[0].answer === 'Resposta revisada');
+  nav('subjects');
+  click('[data-delete-subject=s3]');
+  check('disciplina com baralho é protegida contra exclusão', data().subjects.some(s => s.id === 's3') && w.alerts.at(-1).includes('baralhos'));
+  for (const width of [320, 375, 768, 1200]) {
+    await mount({width});
+    nav('flashcards');
+    check('lista de baralhos responsiva a '+width+'px', d.documentElement.scrollWidth <= width && !!q('[data-flash-id="'+deckId+'"]'));
+    flash('open', deckId);
+    flash('edit-card', cardId);
+    const rect = q('dialog[open]').getBoundingClientRect();
+    check('cartão e diálogo responsivos a '+width+'px', d.documentElement.scrollWidth <= width && rect.left >= 0 && rect.right <= width && dialogForm().elements.answer.value === 'Resposta revisada');
+    click('[data-flash-cancel]');
+    check('cancelar fecha o diálogo a '+width+'px', !dialogForm());
+  }
+  flash('new-card');
+  saveFlash({ question: 'Outro cartão', answer: 'Outro texto' });
+  const rawWithCards = localStorage.getItem(key);
+  w.confirm = () => false;
+  flash('delete-deck', deckId);
+  flash('delete-card', cardId);
+  check('cancelar exclusões preserva os dados', localStorage.getItem(key) === rawWithCards);
+  w.confirm = () => true;
+  flash('delete-card', cardId);
+  check('exclusão de cartão preserva o outro cartão', data().flashcards.cards.length === 1 && data().flashcards.cards[0].question === 'Outro cartão');
+  flash('back');
+  flash('new-deck');
+  saveFlash({ name: 'Baralho preservado', subject: 's2' });
+  flash('back');
+  flash('open', deckId);
+  flash('delete-deck', deckId);
+  check('exclusão de baralho remove seus cartões e preserva demais dados', data().flashcards.cards.length === 0 && data().flashcards.decks.length === 1 && data().flashcards.decks[0].name === 'Baralho preservado' && JSON.stringify(data().tasks) === JSON.stringify(fixture.tasks));
   result.textContent='PASS ' + checks.length + ' | ' + checks.join(' | ');
 } catch (error) {
   result.textContent='FAIL ' + error.message + ' | ' + checks.join(' | ');

@@ -1,3 +1,5 @@
+import { validateFlashcards } from './flashcards.js';
+
 export const STORAGE_KEY = 'trilora-v1'; // Mantém os registros salvos na versão anterior.
 
 export function localDate(date = new Date()) {
@@ -53,6 +55,7 @@ export function normalizeData(candidate) {
   for (const t of candidate.tasks) {
     if (!t || !uniqueId(t.id) || !validTask(t, candidate.subjects) || typeof t.done !== 'boolean') throw new TypeError('Tarefa inválida.');
   }
+  if (Object.hasOwn(candidate, 'flashcards')) validateFlashcards(candidate.flashcards, candidate.subjects, uniqueId);
   // Não descarta registros nem campos adicionais de dados existentes.
   return candidate;
 }

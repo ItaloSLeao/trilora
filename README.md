@@ -2,6 +2,8 @@
 
 Projeto de Engenharia de Software, desenvolvido em HTML, CSS e JavaScript sem frameworks.
 
+Na aba **Flashcards**, crie baralhos vinculados a disciplinas e cadastre perguntas e respostas em texto. Abra um baralho para ver a quantidade de cartões, editar seu conteúdo ou movê-lo para outra disciplina. A exclusão de um baralho remove seus cartões após confirmação. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
+
 ## Novidades da versão 1.1
 
 - Código separado em HTML, CSS e módulos JavaScript.
@@ -18,13 +20,19 @@ trilora/
 ├── index.html                Página principal
 ├── css/
 │   ├── style.css             Estilo da versão inicial
-│   └── improvements.css      Melhorias visuais
+│   ├── improvements.css     Melhorias visuais
+│   └── flashcards.css       Layout de baralhos, cartões e formulários
 ├── js/
 │   ├── app.js                Interface e interações
-│   └── data.js               Dados e regras testáveis
+│   ├── data.js               Validação e persistência compartilhadas
+│   ├── flashcards.js         Regras e operações de baralhos e cartões
+│   └── flashcards-view.js    Interface de flashcards
+├── docs/
+│   └── flashcards.md        Modelo de dados e critérios de aceitação
 ├── tests/
 │   ├── data.test.mjs         Regras e persistência
 │   ├── app.test.mjs          Fluxos da interface com DOM simulado
+│   ├── flashcards.test.mjs   Integridade e persistência de baralhos e cartões
 │   └── browser_smoke.py     Verificação em navegador Chromium
 ├── package.json              Configuração dos testes
 └── README.md
@@ -37,7 +45,7 @@ Como a aplicação agora utiliza módulos JavaScript (`type="module"`), rode-a p
 No Visual Studio Code, você pode utilizar uma extensão de servidor local como Live Server. Se tiver Python 3 instalado, também pode executar na pasta do projeto:
 
 ```bash
-python -m http.server 8000
+python -m http.server 8000 --bind 127.0.0.1
 ```
 
 Depois, acesse `http://localhost:8000`.
@@ -55,7 +63,7 @@ npm test
 Também é possível executar diretamente, sem npm:
 
 ```bash
-node --test tests/data.test.mjs tests/app.test.mjs
+node --test
 ```
 
 Os testes cobrem progresso, filtragem, ordenação, validação, escape de HTML, compatibilidade dos dados legados, corrupção, erros de acesso/leitura/gravação, conflito entre estados e confirmação das operações da interface somente depois de salvar. As operações usam múltiplos registros e conferem o estado esperado completo, incluindo a preservação dos registros não envolvidos, a exclusão individual e a reversão de concluída para pendente.
@@ -68,7 +76,7 @@ Para testar em um navegador real, use Python 3 e informe o caminho de um Chrome 
 python -B tests/browser_smoke.py "C:/Program Files/Google/Chrome/Application/chrome.exe"
 ```
 
-O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica os formulários nativos, o filtro e a pesquisa, a persistência e suas falhas, o calendário e a ausência de rolagem horizontal a 375 e 768 px. Usa dados de teste e simula os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
+O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica formulários nativos, filtros, pesquisa, calendário e os fluxos de baralhos e cartões. Testa persistência após recarregar, falhas de armazenamento e o layout dos flashcards de 320 a 1.200 px. Usa dados de teste e simula os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
 
 ## Etapa 1 — Integridade e persistência
 

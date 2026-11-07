@@ -1,0 +1,41 @@
+.flash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+
+.flash-item { display: grid; align-content: start; gap: 12px; min-width: 0; overflow-wrap: anywhere; }
+.flash-item h2, .flash-item h3, .flash-item p { margin: 0; }
+.flash-item h3 { font-size: .875rem; color: #45406a; margin-bottom: 4px; }
+.flash-item .flash-text { color: #37334e; white-space: pre-wrap; }
+.flash-cards { margin-top: 16px; }
+.flash-tag {
+  justify-self: start;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f0eefe;
+  color: #463b9a;
+  font-size: .875rem;
+}
+.flash-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.flash-actions span { color: #5c6073; }
+.flash-danger { color: #a12c40; }
+.flash-dialog {
+  border: 0;
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+.flash-dialog::backdrop { background: #201b3f88; }
+.flash-dialog .field { font: inherit; width: 100%; }
+.flash-dialog textarea { resize: vertical; }
+.flash-dialog textarea:focus-visible, [data-flash-heading]:focus-visible {
+  outline: 2px solid #6d5cdf;
+  outline-offset: 2px;
+}
+.flash-dialog .flash-actions { justify-content: flex-end; }
+
+@media (max-width: 400px) {
+  .mobilebar button { padding-inline: 2px; min-width: 0; min-height: 44px; }
+  .flash-dialog { padding: 18px; }
+}

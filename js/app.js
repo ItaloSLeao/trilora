@@ -1,4 +1,6 @@
 import { loadData, saveData, localDate, calendarDate, daysFromToday, progress, filterTasks, validTask, escapeHTML as e } from './data.js';
+import { flashcardsOf } from './flashcards.js';
+import { createFlashcardsUI } from './flashcards-view.js';
 
 let storageState = loadData();
 let data = storageState.data ?? { subjects: [], tasks: [] };
@@ -9,6 +11,7 @@ let searchQuery = '';
 let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 const pageElement = document.getElementById('page');
 const modalElement = document.getElementById('modalroot');
+const flashcards = createFlashcardsUI({ getData: () => data, persist, canEdit, render, pageElement, modalElement });
 
 const noticeElement = document.querySelector('.notice');
 const defaultNotice = noticeElement.textContent;
@@ -122,12 +125,14 @@ function render() {
     tasks: ['Minhas tarefas', 'Organize entregas, provas e atividades.'],
     subjects: ['Minhas disciplinas', 'Acompanhe suas matérias e seu progresso.'],
     calendar: ['Calendário acadêmico', 'Visualize seus compromissos e prazos.'],
+    flashcards: ['Flashcards', 'Organize perguntas e respostas em baralhos por disciplina.'],
   };
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === page));
   document.getElementById('pagetitle').textContent = labels[page][0];
   document.getElementById('subtitle').textContent = labels[page][1];
   pageElement.innerHTML = page === 'dashboard' ? dashboard() : page === 'tasks' ? tasksPage() :
-    page === 'subjects' ? `<div class="toolbar"><button class="primary" data-add-subject>+ Nova disciplina</button></div><section class="panel">${subjectList()}</section>` : calendarPage();
+    page === 'subjects' ? `<div class="toolbar"><button class="primary" data-add-subject>+ Nova disciplina</button></div><section class="panel">${subjectList()}</section>` :
+    page === 'flashcards' ? flashcards.render() : calendarPage();
 }
 
 function closeModal() { modalElement.innerHTML = ''; }
@@ -193,11 +198,15 @@ document.addEventListener('click', event => {
     if (persist({ ...data, tasks: data.tasks.filter(t => t.id !== button.dataset.deleteTask) })) render();
   } else if (button.dataset.deleteSubject) {
     if (data.tasks.some(t => t.subject === button.dataset.deleteSubject)) { alert('Remova as tarefas desta disciplina antes de excluí-la.'); return; }
+    if (flashcardsOf(data).decks.some(deck => deck.subject === button.dataset.deleteSubject)) {
+      alert('Mova ou exclua os baralhos desta disciplina antes de excluí-la.');
+      return;
+    }
     if (confirm('Excluir esta disciplina?') && persist({ ...data, subjects: data.subjects.filter(s => s.id !== button.dataset.deleteSubject) })) {
       if (subjectFilter === button.dataset.deleteSubject) subjectFilter = null;
       render();
     }
-  }
+  } else if (page === 'flashcards') flashcards.handleClick(button);
 });
 
 document.addEventListener('change', event => {
@@ -219,7 +228,9 @@ document.addEventListener('input', event => {
   document.getElementById('taskResults').innerHTML = taskList(filterTasks(data.tasks, { status: statusFilter, subject: subjectFilter, query: searchQuery }));
 });
 
-document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !modalElement.querySelector('dialog[open]')) closeModal();
+});
 render();
 if (!['empty', 'ready'].includes(storageState.status)) {
   noticeElement.textContent = storageMessages[storageState.status];
