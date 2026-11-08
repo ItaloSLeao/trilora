@@ -3,18 +3,23 @@ import { flashcardsOf } from './flashcards.js';
 export function startStudy(deck, cards, id, startedAt) {
   const queue = cards.filter(card => card.deck === deck.id);
   if (!queue.length) return null;
-  return { id, deck: deck.id, subject: deck.subject, deckName: deck.name, startedAt, queue, index: 0, reviews: [] };
+  return { id, deck: deck.id, subject: deck.subject, deckName: deck.name, startedAt, queue, index: 0, revealed: false, reviews: [] };
 }
 
-export function rateStudy(session, correct) {
+export function revealStudy(session) {
+  if (session.revealed || !session.queue[session.index]) return session;
+  return { ...session, revealed: true };
+}
+
+export function rateStudy(session, index, correct) {
   const card = session.queue[session.index];
-  if (!card || session.reviews.length !== session.index || typeof correct !== 'boolean') return session;
-  return { ...session, reviews: [...session.reviews, { card: card.id, correct }] };
-}
-
-export function advanceStudy(session) {
-  if (session.index >= session.queue.length || session.reviews.length !== session.index + 1) return session;
-  return { ...session, index: session.index + 1 };
+  if (!card || !session.revealed || index !== session.index || typeof correct !== 'boolean') return session;
+  return {
+    ...session,
+    index: session.index + 1,
+    revealed: false,
+    reviews: [...session.reviews, { card: card.id, correct }],
+  };
 }
 
 export function summarizeStudy(reviews) {

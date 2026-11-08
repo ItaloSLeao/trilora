@@ -15,9 +15,10 @@ Cada baralho pertence a uma disciplina, e cada cartão pertence a um baralho. A 
 | Recarregar depois de salvar | Baralhos, cartões e vínculos permanecem disponíveis. |
 | Falhar ao gravar | A alteração não é aplicada na interface. Um formulário aberto mantém os valores para nova tentativa. |
 | Selecionar um baralho | O modal abre com a opção de iniciar o estudo. Se o baralho estiver vazio, orienta a adicionar cartões. |
-| Iniciar ou avançar | A pergunta atual é exibida com progresso e contadores. A resposta fica ausente do conteúdo da tela. |
-| Marcar Errei ou Acertei | Registra uma avaliação, revela a resposta e habilita o avanço manual. |
-| Avançar no último cartão | Salva a sessão e mostra total, acertos, erros e percentual de acertos arredondado. Uma falha mantém a sessão aberta para nova tentativa. |
+| Iniciar ou avançar | A tela exibe a pergunta, o progresso, os contadores e o botão Mostrar resposta. |
+| Mostrar resposta | Exibe a resposta abaixo da pergunta e disponibiliza Errei e Acertei. |
+| Marcar Errei ou Acertei | Registra uma única avaliação e avança automaticamente. O próximo cartão volta a exibir apenas a pergunta e o botão Mostrar resposta. |
+| Avaliar o último cartão | Salva a sessão e mostra total, acertos, erros e percentual de acertos arredondado. Uma falha permite tentar salvar o mesmo resultado novamente. |
 | Estudar novamente | Inicia uma nova sessão com progresso zerado e mantém a sessão concluída. |
 | Fechar o modal | O botão Fechar e Escape acionam o fechamento. Se houver avaliações pendentes, é necessário confirmar o descarte. O foco retorna ao baralho. |
 

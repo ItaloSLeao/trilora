@@ -1,9 +1,10 @@
 import { escapeHTML as e } from './data.js';
-import { advanceStudy, finishStudy, rateStudy, startStudy, summarizeStudy } from './study.js';
+import { finishStudy, rateStudy, revealStudy, startStudy, summarizeStudy } from './study.js';
 
 export function openStudyDialog({ deck, cards, modalElement, save }) {
   const total = cards.filter(card => card.deck === deck.id).length;
   let session = null;
+  let result = null;
   let saved = false;
   modalElement.innerHTML = `<dialog class="modal flash-dialog study-dialog" aria-labelledby="study-title">
     <header class="study-header">
@@ -23,24 +24,21 @@ export function openStudyDialog({ deck, cards, modalElement, save }) {
 
   function showCard() {
     const card = session.queue[session.index];
-    const review = session.reviews[session.index];
     const { correct, incorrect } = summarizeStudy(session.reviews);
     progress.textContent = `Cartão ${session.index + 1} de ${total} · Acertos: ${correct} · Erros: ${incorrect}`;
     stage.innerHTML = `<div class="study-card">
       <h3 id="study-question" tabindex="-1">Pergunta</h3>
       <p>${e(card.question)}</p>
     </div>
-    ${review ? `<div class="study-card study-answer">
-      <h3 id="study-answer" tabindex="-1">Resposta · ${review.correct ? 'Você marcou Acertei' : 'Você marcou Errei'}</h3>
+    ${session.revealed ? `<div class="study-card study-answer">
+      <h3 id="study-answer" tabindex="-1">Resposta</h3>
       <p>${e(card.answer)}</p>
     </div>
-    <button type="button" class="primary" data-study="next">Próximo cartão</button>
-    <p class="study-error" role="alert"></p>`
-    : `<div class="flash-actions">
-      <button type="button" class="secondary flash-danger" data-study="incorrect">Errei</button>
-      <button type="button" class="primary" data-study="correct">Acertei</button>
-    </div>`}`;
-    stage.querySelector(review ? '#study-answer' : '#study-question').focus();
+    <div class="flash-actions study-actions">
+      <button type="button" class="secondary flash-danger" data-study="incorrect" data-study-index="${session.index}">Errei</button>
+      <button type="button" class="primary" data-study="correct" data-study-index="${session.index}">Acertei</button>
+    </div>` : '<button type="button" class="primary study-actions" data-study="reveal">Mostrar resposta</button>'}`;
+    stage.querySelector(session.revealed ? '#study-answer' : '#study-question').focus();
   }
 
   function showResults() {
@@ -61,34 +59,47 @@ export function openStudyDialog({ deck, cards, modalElement, save }) {
     return saved || !session?.reviews.length || confirm('Encerrar o estudo? As avaliações desta sessão ainda não foram salvas.');
   }
 
+  function saveResult() {
+    if (save(result)) {
+      saved = true;
+      showResults();
+      return;
+    }
+    progress.textContent = 'Resultado pendente de gravação.';
+    stage.innerHTML = `<p class="study-error" role="alert">Resultado ainda não salvo. Verifique o aviso de armazenamento antes de tentar novamente.</p>
+      <button type="button" class="primary" data-study="retry">Tentar salvar novamente</button>`;
+    stage.querySelector('[data-study="retry"]').focus();
+  }
+
   dialog.addEventListener('cancel', event => { if (!mayClose()) event.preventDefault(); });
   dialog.addEventListener('close', () => dialog.remove());
   dialog.addEventListener('click', event => {
-    const action = event.target.closest('button')?.dataset.study;
+    const button = event.target.closest('button[data-study]');
+    if (!button || !dialog.contains(button)) return;
+    const action = button.dataset.study;
     if (action === 'close') {
       if (mayClose()) dialog.close();
     } else if (action === 'start') {
       session = startStudy(deck, cards, crypto.randomUUID(), new Date().toISOString());
+      result = null;
       saved = false;
       showCard();
-    } else if (action === 'incorrect' || action === 'correct') {
-      session = rateStudy(session, action === 'correct');
+    } else if (action === 'reveal') {
+      session = revealStudy(session);
       showCard();
-    } else if (action === 'next') {
-      const next = advanceStudy(session);
-      if (next.index < total) {
-        session = next;
+    } else if (action === 'incorrect' || action === 'correct') {
+      const next = rateStudy(session, Number(button.dataset.studyIndex), action === 'correct');
+      if (next === session) return;
+      session = next;
+      if (session.index < total) {
         showCard();
         return;
       }
-      const completedAt = new Date(Math.max(Date.now(), Date.parse(next.startedAt))).toISOString();
-      if (save(finishStudy(next, completedAt))) {
-        session = next;
-        saved = true;
-        showResults();
-      } else {
-        stage.querySelector('.study-error').textContent = 'Resultado ainda não salvo. Verifique o aviso de armazenamento antes de tentar novamente.';
-      }
+      const completedAt = new Date(Math.max(Date.now(), Date.parse(session.startedAt))).toISOString();
+      result = finishStudy(session, completedAt);
+      saveResult();
+    } else if (action === 'retry' && result && !saved) {
+      saveResult();
     }
   });
   dialog.showModal();

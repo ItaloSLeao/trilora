@@ -2,7 +2,7 @@
 
 Projeto de Engenharia de Software, desenvolvido em HTML, CSS e JavaScript sem frameworks.
 
-Na aba **Flashcards**, selecione um baralho e clique em **Iniciar estudo**. Marque **Errei** ou **Acertei** para revelar a resposta e avance quando quiser. Ao final, confira seu resultado ou estude o mesmo baralho novamente.
+Na aba **Flashcards**, selecione um baralho e clique em **Iniciar estudo**. Leia a pergunta e clique em **Mostrar resposta**. Depois, marque **Errei** ou **Acertei** para registrar a avaliação e avançar. Ao final, confira seu resultado ou estude o mesmo baralho novamente.
 
 Em **Gerenciar baralhos**, crie baralhos por disciplina e edite perguntas e respostas. A exclusão de um baralho remove seus cartões após confirmação. As sessões concluídas ficam no histórico local. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
 
