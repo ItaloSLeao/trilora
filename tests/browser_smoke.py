@@ -18,9 +18,13 @@ ALLOWED = {
     "/js/flashcards-view.js": ("js/flashcards-view.js", "text/javascript"),
     "/js/study.js": ("js/study.js", "text/javascript"),
     "/js/study-view.js": ("js/study-view.js", "text/javascript"),
+    "/js/timer.js": ("js/timer.js", "text/javascript"),
+    "/js/timer-view.js": ("js/timer-view.js", "text/javascript"),
+    "/js/time-stats.js": ("js/time-stats.js", "text/javascript"),
     "/css/style.css": ("css/style.css", "text/css"),
     "/css/improvements.css": ("css/improvements.css", "text/css"),
     "/css/flashcards.css": ("css/flashcards.css", "text/css"),
+    "/css/timer.css": ("css/timer.css", "text/css"),
 }
 HTML = r"""<!doctype html><meta charset="utf-8"><pre id="result">PENDING</pre>
 <script type="module">
@@ -60,7 +64,8 @@ const mount = async ({width=1200, height=900, mode='normal'} = {}) => {
   frame.style.cssText = 'width:' + width + 'px;height:' + height + 'px;border:0';
   const injected = "window.alerts=[];window.alert=m=>alerts.push(m);window.confirm=()=>true;"
     + "const NativeDate=Date;window.Date=class extends NativeDate{constructor(...a){super(...(a.length?a:[2026,10,7,12]));}};"
-    + (mode==='denied' ? "Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Denied','SecurityError');}});" : "");
+    + (mode==='denied' ? "Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Denied','SecurityError');}});" : "")
+    + (mode==='clock' ? "window.timerMono=0;Date.now=()=>parent.timerWall;Object.defineProperty(performance,'now',{value:()=>timerMono});" : "");
   frame.srcdoc = initial.replace('<head>', '<head><base href="/"><script>' + injected + '<' + '/script>');
   await new Promise(resolve => {
     frame.addEventListener('load', resolve, {once:true});
@@ -292,6 +297,73 @@ try {
   flash('manage');
   flash('open', studyDeck.id);
   check('gerenciamento permanece disponível separadamente', !!q('[data-flash-action=edit-card]') && q('.flash-cards').textContent.includes(studyCards[0].answer));
+
+  const previousData = data();
+  window.timerWall = new Date(2026, 10, 8, 12).getTime();
+  await mount({ mode:'clock', width:320, height:568 });
+  const timerAction = action => click('[data-timer-action="'+action+'"]');
+  const timerText = () => q('.time-clock').textContent;
+  const advanceClock = ms => { window.timerWall += ms; w.timerMono += ms; };
+  const visibility = () => d.dispatchEvent(new w.Event('visibilitychange'));
+  const draftDuration = () => data().studyTimer.active.segments.reduce((sum, segment) => sum + segment.end - segment.start, 0);
+  nav('timer');
+  check('cronômetro começa em zero no celular', timerText() === '00:00:00' && d.documentElement.scrollWidth <= 320);
+  change('#timer-subject', 's3');
+  timerAction('start');
+  const timerId = data().studyTimer.active.id;
+  check('sessão fixa a disciplina e bloqueia um segundo início', data().studyTimer.active.subject === 's3' && !q('#timer-subject, [data-timer-action=start]') && timerText() === '00:00:00');
+  nav('subjects');
+  click('[data-delete-subject=s3]');
+  check('disciplina com cronômetro ativo é protegida', data().subjects.some(subject => subject.id === 's3') && w.alerts.at(-1).includes('Encerre a sessão'));
+  nav('tasks');
+  advanceClock(7000);
+  visibility();
+  nav('timer');
+  check('cronômetro acompanha tempo fora da tela sem depender de ticks', timerText() === '00:00:07' && draftDuration() === 7000);
+  timerAction('pause');
+  advanceClock(30000);
+  visibility();
+  check('tempo em pausa fica excluído', timerText() === '00:00:07' && data().studyTimer.active.running === false);
+  timerAction('resume');
+  advanceClock(3000);
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(Error('recarregamento real não concluiu')), 5000);
+    frame.addEventListener('load', () => { clearTimeout(timeout); resolve(); }, { once:true });
+    w.location.reload();
+  });
+  w = frame.contentWindow;
+  d = frame.contentDocument;
+  nav('timer');
+  check('recarregamento real recupera o cronômetro em andamento', timerText() === '00:00:10' && !!q('[data-timer-action=pause]') && data().studyTimer.active.id === timerId);
+  advanceClock(2000);
+  w.dispatchEvent(new w.PageTransitionEvent('pagehide'));
+  window.timerWall += 86400000;
+  await mount({ mode:'clock', width:375, height:568 });
+  nav('timer');
+  check('nova navegação oferece recuperação sem cobrar o período fechado', timerText() === '00:00:12' && q('.time-panel').textContent.includes('Sessão recuperada') && !!q('[data-timer-action=resume]'));
+  advanceClock(5000);
+  visibility();
+  check('recuperação aguarda escolha do estudante', timerText() === '00:00:12' && draftDuration() === 12000);
+  timerAction('resume');
+  advanceClock(4000);
+  const beforeTimerSave = localStorage.getItem(key);
+  const timerWrite = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = () => { throw new w.DOMException('Quota','QuotaExceededError'); };
+  timerAction('finish');
+  check('falha ao encerrar congela tempo e preserva ponto salvo', timerText() === '00:00:16' && !!q('[data-timer-action=retry]') && localStorage.getItem(key) === beforeTimerSave);
+  advanceClock(9000);
+  w.Storage.prototype.setItem = timerWrite;
+  const retryTimer = q('[data-timer-action=retry]');
+  retryTimer.click();
+  retryTimer.click();
+  const recorded = data().studyTimer.sessions;
+  check('nova tentativa salva exatamente um registro e exibe duração efetiva', recorded.length === 1 && recorded[0].id === timerId && recorded[0].durationMs === 16000 && recorded[0].subject === 's3' && data().studyTimer.active === null && q('.time-panel').textContent.includes('Sessão salva: 16 s'));
+  check('disciplinas, tarefas e resultados de flashcards são preservados', ['subjects','tasks','flashcards'].every(name => JSON.stringify(data()[name]) === JSON.stringify(previousData[name])));
+  for (const width of [320, 375, 768, 1200]) {
+    await mount({mode:'clock', width});
+    nav('statistics');
+    check('estatísticas e gráfico corretos sem rolagem horizontal a '+width+'px', d.documentElement.scrollWidth <= width && q('[data-time-total]').textContent === '16 s' && q('[data-time-today]').textContent === '4 s' && q('[data-time-week]').textContent === '16 s' && q('.time-chart-row').textContent.includes('Química') && q('.time-track span').style.width === '100%' && q('.time-history:last-child').textContent.includes('Química'));
+  }
   result.textContent='PASS ' + checks.length + ' | ' + checks.join(' | ');
 } catch (error) {
   result.textContent='FAIL ' + error.message + ' | ' + checks.join(' | ');

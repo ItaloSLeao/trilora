@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import * as api from '../js/data.js';
 import { flashcardsOf } from '../js/flashcards.js';
 import { createFlashcardsUI } from '../js/flashcards-view.js';
+import { timerOf } from '../js/timer.js';
+import { createTimerUI, renderTimeStatistics } from '../js/timer-view.js';
 
 // Executa os handlers reais sem dependências externas. Não substitui teste visual.
 const source = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '');
@@ -77,7 +79,8 @@ function harness({ failWrite = false, failRead = false, raw = JSON.stringify(fix
     setItem(key, value) { if (this.failWrite) throw new Error('quota'); this.raw = value; this.writes++; },
   };
   const context = vm.createContext({
-    ...api, e: api.escapeHTML, flashcardsOf, createFlashcardsUI,
+    ...api, e: api.escapeHTML, flashcardsOf, createFlashcardsUI, timerOf, createTimerUI, renderTimeStatistics,
+    addEventListener() {},
     loadData: () => api.loadData(storage),
     saveData: (data, unused, expectedRaw) => api.saveData(data, storage, expectedRaw),
     crypto: { randomUUID: () => `new-${++generatedIds}` }, alert: message => alerts.push(message), confirm: () => true,

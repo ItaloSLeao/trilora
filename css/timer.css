@@ -1,0 +1,28 @@
+.time-panel { display: grid; gap: 14px; max-width: 580px; margin-top: 20px; }
+.time-panel label { font-weight: 700; }
+.time-clock {
+  color: #463b9a;
+  font-size: clamp(2rem, 10vw, 3.5rem);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.time-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.time-warning { color: #a12c40; }
+.time-warning:empty { display: none; }
+.time-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; margin-top: 20px; }
+.time-totals strong { font-size: clamp(1.25rem, 4vw, 2rem); }
+.time-history { margin-top: 16px; }
+.time-history h2 { margin-bottom: 12px; }
+.time-list { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.time-record { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; overflow-wrap: anywhere; }
+.time-record small { display: block; margin-top: 3px; }
+.time-list .time-record + .time-record { border-top: 1px solid #edf0f5; padding-top: 12px; }
+.time-chart-row { display: grid; gap: 5px; }
+.time-track { height: 12px; background: #f0eefe; border-radius: 8px; overflow: hidden; }
+.time-track span { display: block; height: 100%; border-radius: inherit; }
+
+@media (max-width: 600px) {
+  .mobilebar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+  .mobilebar button { min-height: 44px; padding: 4px 2px; }
+}

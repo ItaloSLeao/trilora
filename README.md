@@ -6,6 +6,8 @@ Na aba **Flashcards**, selecione um baralho e clique em **Iniciar estudo**. Leia
 
 Em **Gerenciar baralhos**, crie baralhos por disciplina e edite perguntas e respostas. A exclusão de um baralho remove seus cartões após confirmação. As sessões concluídas ficam no histórico local. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
 
+Em **Tempo de estudo**, selecione a disciplina e use **Iniciar**, **Pausar**, **Continuar** e **Encerrar**. O histórico mostra a duração efetiva. Em **Estatísticas**, acompanhe os totais e compare seu tempo por disciplina. Consulte [as regras de recuperação e o modelo de dados](docs/tempo-estudo.md).
+
 ## Novidades da versão 1.1
 
 - Código separado em HTML, CSS e módulos JavaScript.
@@ -23,21 +25,27 @@ trilora/
 ├── css/
 │   ├── style.css             Estilo da versão inicial
 │   ├── improvements.css     Melhorias visuais
-│   └── flashcards.css       Layout de baralhos, cartões e formulários
+│   ├── flashcards.css       Layout de baralhos, cartões e formulários
+│   └── timer.css             Cronômetro, histórico e gráfico
 ├── js/
 │   ├── app.js                Interface e interações
 │   ├── data.js               Validação e persistência compartilhadas
 │   ├── flashcards.js         Regras e operações de baralhos e cartões
 │   ├── flashcards-view.js    Catálogo e gerenciamento de flashcards
 │   ├── study.js              Regras da sessão e histórico
-│   └── study-view.js         Modal de estudo
+│   ├── study-view.js         Modal de estudo
+│   ├── timer.js              Regras, recuperação e dados do cronômetro
+│   ├── timer-view.js         Interface do cronômetro e das estatísticas
+│   └── time-stats.js         Durações e agregação por período e disciplina
 ├── docs/
-│   └── flashcards.md        Modelo de dados e critérios de aceitação
+│   ├── flashcards.md        Modelo de dados e critérios de aceitação
+│   └── tempo-estudo.md       Regras de tempo, recuperação e estatísticas
 ├── tests/
 │   ├── data.test.mjs         Regras e persistência
 │   ├── app.test.mjs          Fluxos da interface com DOM simulado
 │   ├── flashcards.test.mjs   Integridade e persistência de baralhos e cartões
 │   ├── study.test.mjs        Progressão, resultado e histórico de estudo
+│   ├── timer.test.mjs        Cronômetro, recuperação e agregação de tempo
 │   └── browser_smoke.py     Verificação em navegador Chromium
 ├── package.json              Configuração dos testes
 └── README.md
@@ -81,7 +89,7 @@ Para testar em um navegador real, use Python 3 e informe o caminho de um Chrome 
 python -B tests/browser_smoke.py "C:/Program Files/Google/Chrome/Application/chrome.exe"
 ```
 
-O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica formulários nativos, filtros, pesquisa, calendário e os fluxos de gerenciamento e estudo. Testa a ocultação das respostas, o foco e o fechamento do modal, a persistência após recarregar, falhas de armazenamento e o layout dos flashcards de 320 a 1.200 px. Usa dados de teste e simula os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
+O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica tarefas, calendário, flashcards, cronômetro e estatísticas, incluindo a recarga real da página e o layout de 320 a 1.200 px. Usa relógio controlado e simula a interrupção seguida de uma nova navegação, os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
 
 ## Etapa 1 — Integridade e persistência
 

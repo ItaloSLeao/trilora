@@ -1,6 +1,8 @@
 import { loadData, saveData, localDate, calendarDate, daysFromToday, progress, filterTasks, validTask, escapeHTML as e } from './data.js';
 import { flashcardsOf } from './flashcards.js';
 import { createFlashcardsUI } from './flashcards-view.js';
+import { timerOf } from './timer.js';
+import { createTimerUI, renderTimeStatistics } from './timer-view.js';
 
 let storageState = loadData();
 let data = storageState.data ?? { subjects: [], tasks: [] };
@@ -23,10 +25,10 @@ const storageMessages = {
   'invalid-data': 'Alteração não salva: os dados não atendem às regras de integridade. O estado anterior foi mantido.',
 };
 
-function reportStorageError(status) {
+function reportStorageError(status, quiet = false) {
   noticeElement.textContent = storageMessages[status];
   noticeElement.setAttribute('role', 'alert');
-  alert(storageMessages[status]);
+  if (!quiet) alert(storageMessages[status]);
 }
 
 function canEdit() {
@@ -35,12 +37,15 @@ function canEdit() {
   return false;
 }
 
-function persist(nextData) {
-  if (!canEdit()) return false;
+function persist(nextData, { quiet = false } = {}) {
+  if (!['empty', 'ready'].includes(storageState.status)) {
+    reportStorageError(storageState.status, quiet);
+    return false;
+  }
   const result = saveData(nextData, undefined, storageState.raw);
   if (!result.ok) {
     if (['corrupt', 'read-error', 'conflict'].includes(result.status)) storageState = { status: result.status };
-    reportStorageError(result.status);
+    reportStorageError(result.status, quiet);
     return false;
   }
   data = nextData;
@@ -49,6 +54,8 @@ function persist(nextData) {
   noticeElement.removeAttribute('role');
   return true;
 }
+
+const timer = createTimerUI({ getData: () => data, persist, render, pageElement, host: globalThis });
 
 function subject(id) { return data.subjects.find(s => s.id === id); }
 function dateLabel(date) { return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); }
@@ -126,13 +133,16 @@ function render() {
     subjects: ['Minhas disciplinas', 'Acompanhe suas matérias e seu progresso.'],
     calendar: ['Calendário acadêmico', 'Visualize seus compromissos e prazos.'],
     flashcards: ['Flashcards', 'Escolha um baralho para estudar ou organize seus cartões.'],
+    timer: ['Tempo de estudo', 'Registre o tempo dedicado a cada disciplina.'],
+    statistics: ['Estatísticas', 'Acompanhe seu tempo de estudo e consulte suas sessões.'],
   };
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === page));
   document.getElementById('pagetitle').textContent = labels[page][0];
   document.getElementById('subtitle').textContent = labels[page][1];
   pageElement.innerHTML = page === 'dashboard' ? dashboard() : page === 'tasks' ? tasksPage() :
     page === 'subjects' ? `<div class="toolbar"><button class="primary" data-add-subject>+ Nova disciplina</button></div><section class="panel">${subjectList()}</section>` :
-    page === 'flashcards' ? flashcards.render() : calendarPage();
+    page === 'flashcards' ? flashcards.render() : page === 'timer' ? timer.render() :
+    page === 'statistics' ? renderTimeStatistics(data) : calendarPage();
 }
 
 function closeModal() { modalElement.innerHTML = ''; }
@@ -197,6 +207,10 @@ document.addEventListener('click', event => {
   else if (button.dataset.deleteTask && confirm('Excluir esta tarefa?')) {
     if (persist({ ...data, tasks: data.tasks.filter(t => t.id !== button.dataset.deleteTask) })) render();
   } else if (button.dataset.deleteSubject) {
+    if (timerOf(data).active?.subject === button.dataset.deleteSubject) {
+      alert('Encerre a sessão de estudo antes de excluir esta disciplina.');
+      return;
+    }
     if (data.tasks.some(t => t.subject === button.dataset.deleteSubject)) { alert('Remova as tarefas desta disciplina antes de excluí-la.'); return; }
     if (flashcardsOf(data).decks.some(deck => deck.subject === button.dataset.deleteSubject)) {
       alert('Mova ou exclua os baralhos desta disciplina antes de excluí-la.');
@@ -207,6 +221,7 @@ document.addEventListener('click', event => {
       render();
     }
   } else if (page === 'flashcards') flashcards.handleClick(button);
+  else if (page === 'timer') timer.handleClick(button);
 });
 
 document.addEventListener('change', event => {

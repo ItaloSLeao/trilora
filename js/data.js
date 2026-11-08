@@ -1,5 +1,6 @@
 import { validateFlashcards } from './flashcards.js';
 import { validateStudySessions } from './study.js';
+import { validateTimerData } from './timer.js';
 
 export const STORAGE_KEY = 'trilora-v1'; // Mantém os registros salvos na versão anterior.
 
@@ -60,6 +61,7 @@ export function normalizeData(candidate) {
     validateFlashcards(candidate.flashcards, candidate.subjects, uniqueId);
     if (Object.hasOwn(candidate.flashcards, 'sessions')) validateStudySessions(candidate.flashcards.sessions, uniqueId);
   }
+  if (Object.hasOwn(candidate, 'studyTimer')) validateTimerData(candidate.studyTimer, candidate.subjects, uniqueId);
   // Não descarta registros nem campos adicionais de dados existentes.
   return candidate;
 }
