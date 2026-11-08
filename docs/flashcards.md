@@ -1,6 +1,6 @@
-# Gerenciamento de flashcards
+# Flashcards
 
-Cada baralho pertence a uma disciplina, e cada cartão pertence a um baralho. A aba **Flashcards** mostra o nome, a disciplina, a descrição opcional e a quantidade de cartões por baralho. Ao abri-lo, o estudante pode editar o baralho e criar, editar ou excluir cartões. A edição de um baralho permite escolher outra disciplina e mantém seus cartões associados.
+Cada baralho pertence a uma disciplina, e cada cartão pertence a um baralho. A aba **Flashcards** lista os baralhos para estudo por nome, disciplina e quantidade de cartões. A área **Gerenciar baralhos** mostra também a descrição opcional e permite editar baralhos e criar, editar ou excluir cartões. A edição de um baralho permite escolher outra disciplina e mantém seus cartões associados.
 
 ## Regras e critérios de aceitação
 
@@ -14,6 +14,12 @@ Cada baralho pertence a uma disciplina, e cada cartão pertence a um baralho. A 
 | Excluir uma disciplina com baralhos | A exclusão é bloqueada até que os baralhos sejam movidos ou excluídos. |
 | Recarregar depois de salvar | Baralhos, cartões e vínculos permanecem disponíveis. |
 | Falhar ao gravar | A alteração não é aplicada na interface. Um formulário aberto mantém os valores para nova tentativa. |
+| Selecionar um baralho | O modal abre com a opção de iniciar o estudo. Se o baralho estiver vazio, orienta a adicionar cartões. |
+| Iniciar ou avançar | A pergunta atual é exibida com progresso e contadores. A resposta fica ausente do conteúdo da tela. |
+| Marcar Errei ou Acertei | Registra uma avaliação, revela a resposta e habilita o avanço manual. |
+| Avançar no último cartão | Salva a sessão e mostra total, acertos, erros e percentual de acertos arredondado. Uma falha mantém a sessão aberta para nova tentativa. |
+| Estudar novamente | Inicia uma nova sessão com progresso zerado e mantém a sessão concluída. |
+| Fechar o modal | O botão Fechar e Escape acionam o fechamento. Se houver avaliações pendentes, é necessário confirmar o descarte. O foco retorna ao baralho. |
 
 ## Modelo de dados
 
@@ -23,8 +29,11 @@ A chave continua sendo `trilora-v1`. O campo opcional `flashcards` é gravado ju
 flashcards
   decks: [{ id, subject, name, description }]
   cards: [{ id, deck, question, answer }]
+  sessions: [{ id, deck, subject, deckName, startedAt, completedAt, reviews: [{ card, correct }] }]
 ```
 
 `subject` referencia o ID de uma disciplina. `deck` referencia o ID de um baralho. Os IDs são únicos entre disciplinas, tarefas, baralhos e cartões. A carga e a gravação validam os vínculos. Uma coleção malformada bloqueia alterações e preserva o conteúdo salvo para recuperação.
 
-`js/flashcards.js` contém a validação e as operações sobre a coleção. `js/flashcards-view.js` monta as telas e os formulários e solicita as gravações pela persistência compartilhada. Esta etapa cobre o gerenciamento de conteúdo. Sessões de revisão e repetição espaçada ficam fora deste escopo.
+O histórico opcional `sessions` é criado ao concluir a primeira sessão. Os IDs estáveis e horários UTC identificam cada sessão e permitem agregar dados futuramente. As avaliações registram a autoavaliação do estudante, e os totais são calculados a partir delas. O histórico preserva os vínculos que existiam na data do estudo, mesmo que o baralho seja movido ou que baralho, disciplina e cartões sejam excluídos depois. Sessões interrompidas não entram no histórico. Os dados continuam locais.
+
+`js/flashcards.js` e `js/flashcards-view.js` cuidam da coleção e das telas de catálogo e gerenciamento. `js/study.js` define as transições e valida o histórico. `js/study-view.js` controla o modal de estudo e usa a persistência compartilhada para salvar os resultados. O estudo segue a ordem dos cartões no baralho.

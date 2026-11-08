@@ -1,4 +1,5 @@
 import { validateFlashcards } from './flashcards.js';
+import { validateStudySessions } from './study.js';
 
 export const STORAGE_KEY = 'trilora-v1'; // Mantém os registros salvos na versão anterior.
 
@@ -55,7 +56,10 @@ export function normalizeData(candidate) {
   for (const t of candidate.tasks) {
     if (!t || !uniqueId(t.id) || !validTask(t, candidate.subjects) || typeof t.done !== 'boolean') throw new TypeError('Tarefa inválida.');
   }
-  if (Object.hasOwn(candidate, 'flashcards')) validateFlashcards(candidate.flashcards, candidate.subjects, uniqueId);
+  if (Object.hasOwn(candidate, 'flashcards')) {
+    validateFlashcards(candidate.flashcards, candidate.subjects, uniqueId);
+    if (Object.hasOwn(candidate.flashcards, 'sessions')) validateStudySessions(candidate.flashcards.sessions, uniqueId);
+  }
   // Não descarta registros nem campos adicionais de dados existentes.
   return candidate;
 }

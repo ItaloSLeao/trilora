@@ -1,5 +1,7 @@
 import { escapeHTML as e } from './data.js';
 import { FLASHCARD_LIMITS as limits, flashcardsOf, validDeck, validCard, withFlashcard, withoutDeck, withoutCard } from './flashcards.js';
+import { withStudySession } from './study.js';
+import { openStudyDialog } from './study-view.js';
 
 function action(label, name, id, classes = 'secondary') {
   return `<button type="button" class="${classes}" data-flash-action="${name}" data-flash-id="${e(id)}">${label}</button>`;
@@ -9,27 +11,35 @@ function cardCount(count) {
   return count === 1 ? '1 cartão' : `${count} cartões`;
 }
 
-function deckGrid(subjects, decks, cards) {
+function deckGrid(subjects, decks, cards, managing) {
   if (!subjects.length) {
     return '<div class="panel empty"><p>Cadastre uma disciplina para criar seu primeiro baralho.</p><button class="primary" data-go="subjects">Ir para disciplinas</button></div>';
   }
   const counts = new Map();
   for (const card of cards) counts.set(card.deck, (counts.get(card.deck) ?? 0) + 1);
   const names = new Map(subjects.map(subject => [subject.id, subject.name]));
-  return `<div class="toolbar">${action('+ Novo baralho', 'new-deck', '', 'primary')}</div>
-    ${decks.length ? `<div class="flash-grid">${decks.map(deck => `<article class="panel flash-item">
+  const toolbar = managing
+    ? action('← Voltar ao estudo', 'catalog', '') + action('+ Novo baralho', 'new-deck', '', 'primary')
+    : action('Gerenciar baralhos', 'manage', '');
+  return `<div class="toolbar">${toolbar}</div>
+    ${decks.length ? `<div class="flash-grid">${decks.map(deck => managing ? `<article class="panel flash-item">
       <span class="flash-tag">${e(names.get(deck.subject))}</span>
       <h2>${e(deck.name)}</h2>
       ${deck.description ? `<p class="flash-text">${e(deck.description)}</p>` : ''}
       <div class="flash-actions">
         <span>${cardCount(counts.get(deck.id) ?? 0)}</span>
         ${action('Abrir baralho', 'open', deck.id)}
-      </div></article>`).join('')}</div>` : '<p class="panel empty">Crie um baralho para organizar seus cartões por disciplina.</p>'}`;
+      </div></article>` : `<button type="button" class="panel flash-item flash-deck-choice" data-flash-action="study" data-flash-id="${e(deck.id)}">
+        <span class="flash-tag">${e(names.get(deck.subject))}</span>
+        <strong class="flash-deck-name">${e(deck.name)}</strong>
+        <span>${cardCount(counts.get(deck.id) ?? 0)}</span>
+      </button>`).join('')}</div>` : '<p class="panel empty">Crie um baralho para organizar seus cartões por disciplina.</p>'}`;
 }
 
 function deckDetail(deck, subject, cards) {
   return `<div class="toolbar flash-actions">
     ${action('← Baralhos', 'back', '')}
+    ${action('Voltar ao estudo', 'catalog', '')}
     ${action('Editar baralho', 'edit-deck', deck.id)}
     ${action('Excluir baralho', 'delete-deck', deck.id, 'secondary flash-danger')}
     ${action('+ Novo cartão', 'new-card', '', 'primary')}
@@ -51,6 +61,7 @@ function deckDetail(deck, subject, cards) {
 }
 
 export function createFlashcardsUI({ getData, persist, canEdit, render, pageElement, modalElement }) {
+  let managing = false;
   let selectedDeck = null;
 
   function showDeck(id) {
@@ -138,7 +149,7 @@ export function createFlashcardsUI({ getData, persist, canEdit, render, pageElem
       const deck = decks.find(item => item.id === selectedDeck);
       return deck
         ? deckDetail(deck, subjects.find(subject => subject.id === deck.subject), cards.filter(card => card.deck === deck.id))
-        : deckGrid(subjects, decks, cards);
+        : deckGrid(subjects, decks, cards, managing);
     },
     handleClick(button) {
       const { flashAction, flashId } = button.dataset;
@@ -146,6 +157,21 @@ export function createFlashcardsUI({ getData, persist, canEdit, render, pageElem
       const data = getData();
       const { decks, cards } = flashcardsOf(data);
       const deck = decks.find(item => item.id === selectedDeck);
+      if (flashAction === 'manage' || flashAction === 'catalog') {
+        managing = flashAction === 'manage';
+        selectedDeck = null;
+        render();
+        pageElement.querySelector(managing ? '[data-flash-action="new-deck"]' : '[data-flash-action="study"], [data-flash-action="manage"]')?.focus();
+        return;
+      }
+      if (flashAction === 'study' && !managing) {
+        const choice = decks.find(item => item.id === flashId);
+        if (choice && canEdit()) openStudyDialog({
+          deck: choice, cards, modalElement,
+          save: session => persist(withStudySession(getData(), session)),
+        });
+        return;
+      }
       if (flashAction === 'open') {
         if (decks.some(item => item.id === flashId)) showDeck(flashId);
         return;

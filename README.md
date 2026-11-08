@@ -2,7 +2,9 @@
 
 Projeto de Engenharia de Software, desenvolvido em HTML, CSS e JavaScript sem frameworks.
 
-Na aba **Flashcards**, crie baralhos vinculados a disciplinas e cadastre perguntas e respostas em texto. Abra um baralho para ver a quantidade de cartões, editar seu conteúdo ou movê-lo para outra disciplina. A exclusão de um baralho remove seus cartões após confirmação. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
+Na aba **Flashcards**, selecione um baralho e clique em **Iniciar estudo**. Marque **Errei** ou **Acertei** para revelar a resposta e avance quando quiser. Ao final, confira seu resultado ou estude o mesmo baralho novamente.
+
+Em **Gerenciar baralhos**, crie baralhos por disciplina e edite perguntas e respostas. A exclusão de um baralho remove seus cartões após confirmação. As sessões concluídas ficam no histórico local. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
 
 ## Novidades da versão 1.1
 
@@ -26,13 +28,16 @@ trilora/
 │   ├── app.js                Interface e interações
 │   ├── data.js               Validação e persistência compartilhadas
 │   ├── flashcards.js         Regras e operações de baralhos e cartões
-│   └── flashcards-view.js    Interface de flashcards
+│   ├── flashcards-view.js    Catálogo e gerenciamento de flashcards
+│   ├── study.js              Regras da sessão e histórico
+│   └── study-view.js         Modal de estudo
 ├── docs/
 │   └── flashcards.md        Modelo de dados e critérios de aceitação
 ├── tests/
 │   ├── data.test.mjs         Regras e persistência
 │   ├── app.test.mjs          Fluxos da interface com DOM simulado
 │   ├── flashcards.test.mjs   Integridade e persistência de baralhos e cartões
+│   ├── study.test.mjs        Progressão, resultado e histórico de estudo
 │   └── browser_smoke.py     Verificação em navegador Chromium
 ├── package.json              Configuração dos testes
 └── README.md
@@ -76,7 +81,7 @@ Para testar em um navegador real, use Python 3 e informe o caminho de um Chrome 
 python -B tests/browser_smoke.py "C:/Program Files/Google/Chrome/Application/chrome.exe"
 ```
 
-O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica formulários nativos, filtros, pesquisa, calendário e os fluxos de baralhos e cartões. Testa persistência após recarregar, falhas de armazenamento e o layout dos flashcards de 320 a 1.200 px. Usa dados de teste e simula os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
+O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o navegador em modo headless com perfil descartável. Verifica formulários nativos, filtros, pesquisa, calendário e os fluxos de gerenciamento e estudo. Testa a ocultação das respostas, o foco e o fechamento do modal, a persistência após recarregar, falhas de armazenamento e o layout dos flashcards de 320 a 1.200 px. Usa dados de teste e simula os diálogos de confirmação e os erros de armazenamento. A verificação não abrange interação manual, leitores de tela ou outros motores de navegador.
 
 ## Etapa 1 — Integridade e persistência
 

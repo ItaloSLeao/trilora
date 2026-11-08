@@ -16,6 +16,8 @@ ALLOWED = {
     "/js/data.js": ("js/data.js", "text/javascript"),
     "/js/flashcards.js": ("js/flashcards.js", "text/javascript"),
     "/js/flashcards-view.js": ("js/flashcards-view.js", "text/javascript"),
+    "/js/study.js": ("js/study.js", "text/javascript"),
+    "/js/study-view.js": ("js/study-view.js", "text/javascript"),
     "/css/style.css": ("css/style.css", "text/css"),
     "/css/improvements.css": ("css/improvements.css", "text/css"),
     "/css/flashcards.css": ("css/flashcards.css", "text/css"),
@@ -52,10 +54,10 @@ const change = (selector, value) => {
 const fill = (form, values) => {
   for (const [name, value] of Object.entries(values)) form.elements.namedItem(name).value = value;
 };
-const mount = async ({width=1200, mode='normal'} = {}) => {
+const mount = async ({width=1200, height=900, mode='normal'} = {}) => {
   frame?.remove();
   frame = document.createElement('iframe');
-  frame.style.cssText = 'width:' + width + 'px;height:900px;border:0';
+  frame.style.cssText = 'width:' + width + 'px;height:' + height + 'px;border:0';
   const injected = "window.alerts=[];window.alert=m=>alerts.push(m);window.confirm=()=>true;"
     + "const NativeDate=Date;window.Date=class extends NativeDate{constructor(...a){super(...(a.length?a:[2026,10,7,12]));}};"
     + (mode==='denied' ? "Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Denied','SecurityError');}});" : "");
@@ -157,6 +159,7 @@ try {
   await mount();
   nav('flashcards');
   const flash = (action, id) => click('[data-flash-action="'+action+'"]' + (id ? '[data-flash-id="'+id+'"]' : ''));
+  flash('manage');
   const dialogForm = () => q('dialog[open] form');
   const saveFlash = values => {
     const form = dialogForm();
@@ -192,6 +195,7 @@ try {
   for (const width of [320, 375, 768, 1200]) {
     await mount({width});
     nav('flashcards');
+    flash('manage');
     check('lista de baralhos responsiva a '+width+'px', d.documentElement.scrollWidth <= width && !!q('[data-flash-id="'+deckId+'"]'));
     flash('open', deckId);
     flash('edit-card', cardId);
@@ -217,6 +221,72 @@ try {
   flash('open', deckId);
   flash('delete-deck', deckId);
   check('exclusão de baralho remove seus cartões e preserva demais dados', data().flashcards.cards.length === 0 && data().flashcards.decks.length === 1 && data().flashcards.decks[0].name === 'Baralho preservado' && JSON.stringify(data().tasks) === JSON.stringify(fixture.tasks));
+  const studyDeck = { id:'study-deck', name:'Revisão de álgebra', subject:'Todas', description:'' };
+  const studyCards = [
+    { id:'study-one', deck:studyDeck.id, question:'Primeira pergunta', answer:'Primeira resposta secreta' },
+    { id:'study-two', deck:studyDeck.id, question:'Segunda pergunta', answer:'Segunda resposta secreta' },
+  ];
+  const studyFixture = { ...fixture, flashcards: { decks: [studyDeck], cards: studyCards } };
+  localStorage.setItem(key, JSON.stringify(studyFixture));
+  const study = action => click('[data-study="'+action+'"]');
+  const studyDialog = () => q('.study-dialog[open]');
+  const answersHidden = () => studyCards.every(card => !d.body.textContent.includes(card.answer));
+  for (const width of [320, 375, 768, 1200]) {
+    await mount({width, height: width <= 375 ? 568 : 900});
+    nav('flashcards');
+    const choice = q('[data-flash-action=study]');
+    check('catálogo selecionável sem respostas a '+width+'px', answersHidden() && choice.textContent.includes(studyDeck.name) && choice.textContent.includes('Lógica') && choice.textContent.includes('2 cartões'));
+    choice.focus();
+    choice.click();
+    const dialog = studyDialog();
+    const rect = dialog.getBoundingClientRect();
+    const viewportWidth = d.documentElement.clientWidth;
+    check('estudo modal centralizado a '+width+'px', rect.left >= 0 && rect.right <= viewportWidth && rect.top >= 0 && rect.bottom <= w.innerHeight && Math.abs((rect.left+rect.right)/2 - viewportWidth/2) < 2 && Math.abs((rect.top+rect.bottom)/2 - w.innerHeight/2) < 2);
+    check('estudo modal com foco e fundo escurecido a '+width+'px', d.activeElement.dataset.study === 'start' && w.getComputedStyle(dialog, '::backdrop').backgroundColor !== 'rgba(0, 0, 0, 0)');
+    choice.focus();
+    check('fundo do modal é inerte a '+width+'px', dialog.contains(d.activeElement));
+    study('start');
+    check('primeiro cartão tem apenas pergunta a '+width+'px', answersHidden() && dialog.textContent.includes('Primeira pergunta') && !dialog.textContent.includes('Segunda pergunta') && !!q('[data-study=incorrect]') && !!q('[data-study=correct]') && !q('[data-study=next]') && d.activeElement.id === 'study-question');
+    study('incorrect');
+    check('Errei revela só a resposta atual e não avança a '+width+'px', dialog.textContent.includes(studyCards[0].answer) && !d.body.textContent.includes(studyCards[1].answer) && q('.study-progress').textContent === 'Cartão 1 de 2 · Acertos: 0 · Erros: 1' && d.activeElement.id === 'study-answer' && !q('[data-study=incorrect]'));
+    study('next');
+    check('próximo cartão volta a ocultar as respostas a '+width+'px', answersHidden() && dialog.textContent.includes('Segunda pergunta') && q('.study-progress').textContent.startsWith('Cartão 2 de 2') && !q('[data-study=next]'));
+    study('correct');
+    check('Acertei revela a segunda resposta sem concluir a '+width+'px', dialog.textContent.includes(studyCards[1].answer) && !dialog.textContent.includes(studyCards[0].answer) && q('.study-progress').textContent.includes('Acertos: 1 · Erros: 1') && !q('#study-results'));
+    if (width !== 1200) {
+      w.confirm = () => false;
+      dialog.requestClose();
+      check('cancelar pedido de fechamento mantém a sessão a '+width+'px', !!studyDialog());
+      w.confirm = () => true;
+      dialog.requestClose();
+      check('fechar sessão parcial devolve foco e não grava a '+width+'px', !studyDialog() && d.activeElement === choice && !data().flashcards.sessions);
+    }
+  }
+  const beforeStudySave = localStorage.getItem(key);
+  const writeStudy = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = () => { throw new w.DOMException('Quota','QuotaExceededError'); };
+  study('next');
+  check('falha ao gravar sessão mantém avaliação para nova tentativa', localStorage.getItem(key) === beforeStudySave && !q('#study-results') && q('.study-error').textContent.includes('não salvo'));
+  w.Storage.prototype.setItem = writeStudy;
+  study('next');
+  const firstSession = data().flashcards.sessions[0];
+  check('resultado exibe totais e percentual', [...studyDialog().querySelectorAll('.study-results dd')].map(value => value.textContent).join(',') === '2,1,1,50%' && d.activeElement.id === 'study-results');
+  check('histórico registra avaliações, vínculos e horários', firstSession.deck === studyDeck.id && firstSession.subject === 'Todas' && Date.parse(firstSession.completedAt) >= Date.parse(firstSession.startedAt) && JSON.stringify(firstSession.reviews) === JSON.stringify([{card:'study-one',correct:false},{card:'study-two',correct:true}]));
+  study('start');
+  check('estudar novamente reinicia progresso sem revelar respostas', answersHidden() && q('.study-progress').textContent === 'Cartão 1 de 2 · Acertos: 0 · Erros: 0');
+  study('correct');
+  study('next');
+  study('correct');
+  study('next');
+  check('nova sessão tem outro ID e mantém a anterior', data().flashcards.sessions.length === 2 && data().flashcards.sessions[1].id !== firstSession.id && JSON.stringify(data().flashcards.sessions[0]) === JSON.stringify(firstSession));
+  study('close');
+  const completedRaw = localStorage.getItem(key);
+  await mount();
+  nav('flashcards');
+  check('reabrir o app preserva histórico e separa estudo de gerenciamento', answersHidden() && localStorage.getItem(key) === completedRaw && !!q('[data-flash-action=study]'));
+  flash('manage');
+  flash('open', studyDeck.id);
+  check('gerenciamento permanece disponível separadamente', !!q('[data-flash-action=edit-card]') && q('.flash-cards').textContent.includes(studyCards[0].answer));
   result.textContent='PASS ' + checks.length + ' | ' + checks.join(' | ');
 } catch (error) {
   result.textContent='FAIL ' + error.message + ' | ' + checks.join(' | ');

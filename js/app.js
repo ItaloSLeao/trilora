@@ -125,7 +125,7 @@ function render() {
     tasks: ['Minhas tarefas', 'Organize entregas, provas e atividades.'],
     subjects: ['Minhas disciplinas', 'Acompanhe suas matérias e seu progresso.'],
     calendar: ['Calendário acadêmico', 'Visualize seus compromissos e prazos.'],
-    flashcards: ['Flashcards', 'Organize perguntas e respostas em baralhos por disciplina.'],
+    flashcards: ['Flashcards', 'Escolha um baralho para estudar ou organize seus cartões.'],
   };
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === page));
   document.getElementById('pagetitle').textContent = labels[page][0];
