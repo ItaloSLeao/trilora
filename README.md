@@ -1,21 +1,14 @@
-# Trilora 1.1 — Organizador acadêmico
+# Trilora 1.2.0 — Organizador acadêmico
 
-Projeto de Engenharia de Software, desenvolvido em HTML, CSS e JavaScript sem frameworks.
+Projeto de Engenharia de Software em HTML, CSS e JavaScript. Reúne planejamento acadêmico, revisão com flashcards e acompanhamento do tempo de estudo.
 
-Na aba **Flashcards**, selecione um baralho e clique em **Iniciar estudo**. Leia a pergunta e clique em **Mostrar resposta**. Depois, marque **Errei** ou **Acertei** para registrar a avaliação e avançar. Ao final, confira seu resultado ou estude o mesmo baralho novamente.
+## Funcionalidades e uso
 
-Em **Gerenciar baralhos**, crie baralhos por disciplina e edite perguntas e respostas. A exclusão de um baralho remove seus cartões após confirmação. As sessões concluídas ficam no histórico local. Veja as [regras e os critérios de aceitação](docs/flashcards.md).
-
-Em **Tempo de estudo**, selecione a disciplina e use **Iniciar**, **Pausar**, **Continuar** e **Encerrar**. O histórico mostra a duração efetiva. Em **Estatísticas**, acompanhe os totais e compare seu tempo por disciplina. Consulte [as regras de recuperação e o modelo de dados](docs/tempo-estudo.md).
-
-## Novidades da versão 1.1
-
-- Código separado em HTML, CSS e módulos JavaScript.
-- Edição de tarefas existentes (título, disciplina, prazo e prioridade).
-- Busca textual de tarefas, filtro por situação e filtro por disciplina.
-- Validação de títulos e datas; prevenção de disciplinas duplicadas.
-- Testes automatizados para regras de negócio.
-- Compatibilidade com os dados da versão 1.0 armazenados no navegador.
+- **Disciplinas.** Cadastre disciplinas com cores e acompanhe o andamento das tarefas na visão geral. A exclusão é bloqueada enquanto houver tarefas, baralhos ou uma sessão de tempo ativa vinculada.
+- **Tarefas e calendário.** Crie e edite tarefas com disciplina, prazo e prioridade. Marque-as como concluídas, use a pesquisa e os filtros e veja os prazos na grade mensal.
+- **Flashcards.** Em **Gerenciar baralhos**, crie baralhos por disciplina e cadastre perguntas e respostas. Para revisar, escolha um baralho e clique em **Iniciar estudo**. Use **Mostrar resposta**, depois **Errei** ou **Acertei**. Ao final, veja o resultado e, se quiser, estude novamente. As revisões concluídas ficam no histórico local. [Regras dos flashcards](docs/flashcards.md)
+- **Tempo de estudo.** Escolha uma disciplina e use **Iniciar**, **Pausar**, **Continuar** e **Encerrar**. O histórico registra a duração efetiva, excluindo pausas, e o último ponto salvo pode ser recuperado após uma interrupção. [Regras do cronômetro](docs/tempo-estudo.md)
+- **Estatísticas.** Consulte o total de tempo estudado, o tempo de hoje e dos últimos sete dias, o gráfico por disciplina e o histórico das sessões.
 
 ## Estrutura
 
@@ -95,7 +88,7 @@ O roteiro abre um servidor em `127.0.0.1` com porta temporária e executa o nave
 
 ### Compatibilidade e validação
 
-A chave continua sendo `trilora-v1`, com o formato `{ subjects: [...], tasks: [...] }`. Dados válidos da versão 1.1 são carregados sem migração nem gravação automática. Campos adicionais existentes são preservados nas operações. Coleções vazias salvas são válidas e não recebem demonstração.
+A chave continua sendo `trilora-v1`. O formato inclui `subjects` e `tasks`, com `flashcards` e `studyTimer` opcionais. Dados válidos da versão 1.1 são carregados sem migração nem gravação automática. Campos adicionais existentes são preservados nas operações. Coleções vazias salvas são válidas e não recebem demonstração.
 
 A validação é integral, tanto na carga quanto antes de salvar:
 
@@ -142,14 +135,12 @@ A comparação antes de gravar reduz sobrescritas entre abas, mas leitura e grav
 
 ## Publicar no GitHub Pages
 
-1. Antes de atualizar, guarde uma cópia do repositório atual.
-2. Extraia o ZIP da versão 1.1.
-3. No repositório `JoabKaimon/trilora`, atualize `index.html` e `README.md`, envie as pastas `css`, `js` e `tests` e o arquivo `package.json`.
-4. Confirme que `index.html` continua na raiz do branch `main`.
-5. Aguarde a publicação em `https://joabkaimon.github.io/trilora/`.
-6. Abra o site e teste a edição, a pesquisa e o calendário.
+1. Após a aprovação da versão, atualize a referência de `origin/main` e confirme que ela é ancestral do commit validado. Registre o SHA que está publicado para facilitar uma eventual reversão.
+2. Confirme em **Settings → Pages** que a fonte de publicação é a raiz (`/`) de `main`, onde fica o `index.html`. Os módulos e estilos usam caminhos relativos compatíveis com o subdiretório `/trilora/`. O aplicativo é estático.
+3. Integre por avanço rápido se a `main` continuar ancestral da versão. Se a branch estiver protegida, use um pull request que preserve os commits e confirme o SHA que será publicado antes de enviar a tag anotada da versão.
+4. Acompanhe a implantação em **Actions**. Quando concluir, abra o [Trilora publicado](https://joabkaimon.github.io/trilora/) e verifique disciplinas, tarefas, calendário, revisão de flashcards, cronômetro e estatísticas. Use um perfil separado com dados de teste para o teste de gravação.
 
-**Não envie apenas o arquivo ZIP para a raiz do repositório.** O GitHub Pages precisa dos arquivos extraídos. Mantenha os caminhos e nomes das pastas.
+Se for preciso corrigir a implantação, prefira publicar um commit que mantenha o esquema atual. Versões antigas podem remover os campos de flashcards e tempo de estudo ao gravar em `trilora-v1`. Antes de testar uma reversão com dados reais, guarde uma cópia do valor dessa chave na origem publicada.
 
 ## Armazenamento e limitações
 
