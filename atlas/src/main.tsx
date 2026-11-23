@@ -1,3 +1,5 @@
+import { Intelligence } from './intelligence/Center'
+import { RemoteProvider } from './intelligence/remote'
 import { createRoot } from 'react-dom/client'
 import { WorkspaceProvider } from './application/workspace'
 import { useRoute } from './application/navigation'
@@ -26,6 +28,7 @@ function App() {
     revisao: <Flashcards tab={tab} />,
     estudo: <Study activityId={tab} />,
     progresso: <Progress today={today} />,
+    inteligencia: <Intelligence tab={tab} />,
     dados: <Portability />,
   }
   return <Shell page={page}>{views[page]}</Shell>
@@ -33,7 +36,9 @@ function App() {
 createRoot(document.getElementById('root')!).render(
   <WorkspaceProvider>
     <ClockProvider>
-      <App />
+      <RemoteProvider>
+        <App />
+      </RemoteProvider>
     </ClockProvider>
   </WorkspaceProvider>,
 )

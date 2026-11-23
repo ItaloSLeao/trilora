@@ -1,3 +1,4 @@
+import { PracticeHistory } from '../intelligence/PracticeHistory'
 import { BookCheck, Clock3, Layers } from 'lucide-react'
 import { useWorkspace } from '../application/workspace'
 import { legacyHistory, totals } from '../application/insights'
@@ -54,6 +55,7 @@ export function Progress({ today }: { today: string }) {
         subtitle="Compare a prática registrada com os resultados das suas tentativas."
       />
       <div className="stack">
+        <PracticeHistory today={today} />
         <Panel title="Engajamento">
           <div className="metrics compact">
             <Metric

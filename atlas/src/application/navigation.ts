@@ -6,6 +6,7 @@ export const pages = {
   revisao: 'Flashcards',
   estudo: 'Modo de estudo',
   progresso: 'Progresso',
+  inteligencia: 'Acompanhamento',
   dados: 'Meus dados',
 } as const
 export type Page = keyof typeof pages

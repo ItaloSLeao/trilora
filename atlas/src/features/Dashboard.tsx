@@ -1,3 +1,4 @@
+import { MonitorSummary } from '../intelligence/MonitorSummary'
 import { useState } from 'react'
 import {
   BookOpen,
@@ -209,6 +210,7 @@ export function Dashboard({ today }: { today: string }) {
         </div>
         <div className="stack">
           <Week today={today} />
+          <MonitorSummary />
           <Panel
             title="Objetivos em andamento"
             action={<Target size={18} className="panel-icon" />}

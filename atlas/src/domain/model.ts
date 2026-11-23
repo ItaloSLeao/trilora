@@ -31,6 +31,7 @@ const concept = z.strictObject({
 const goal = z.strictObject({ id, subject: id, name: title, done: z.boolean() })
 const activity = z.strictObject({ id, goal: id, name: title })
 const task = z.strictObject({
+  assessment: z.boolean().optional(),
   id,
   subject: id,
   goal: id.nullable(),

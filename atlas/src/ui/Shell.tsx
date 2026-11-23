@@ -25,11 +25,15 @@ const icons: Record<Page, LucideIcon> = {
   revisao: Layers,
   estudo: Timer,
   progresso: ChartNoAxesColumnIncreasing,
+  inteligencia: Compass,
   dados: Database,
 }
 const groups: { title: string; keys: Page[] }[] = [
   { title: 'Meu espaço', keys: ['painel', 'agenda', 'conhecimentos'] },
-  { title: 'Aprendizagem', keys: ['revisao', 'estudo', 'progresso'] },
+  {
+    title: 'Aprendizagem',
+    keys: ['revisao', 'estudo', 'progresso', 'inteligencia'],
+  },
 ]
 export function Shell({ page, children }: { page: Page; children: ReactNode }) {
   const [open, setOpen] = useState(false)

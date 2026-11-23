@@ -129,6 +129,14 @@ export function Editor({
               value={f.goal}
               set={(v) => put('goal', v)}
             />
+            <label className="inline-check">
+              <input
+                type="checkbox"
+                checked={!!f.assessment}
+                onChange={(e) => put('assessment', e.target.checked)}
+              />{' '}
+              Avaliação acadêmica
+            </label>
             <Field label="Prazo">
               <input
                 required

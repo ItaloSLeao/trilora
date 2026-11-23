@@ -20,6 +20,7 @@ export const newLabel = {
   cards: 'Novo cartão',
 }
 export interface Draft {
+  assessment?: boolean
   name: string
   color: string
   subject: string
@@ -115,6 +116,7 @@ export function storeEntity(
         name,
         subject,
         goal: goal || null,
+        ...(fields.assessment ? { assessment: true } : {}),
         date,
         priority,
         done,
