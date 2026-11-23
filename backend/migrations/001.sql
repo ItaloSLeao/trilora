@@ -1,0 +1,12 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE account (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), login text UNIQUE NOT NULL, secret bytea NOT NULL);
+CREATE TABLE workspace (owner uuid PRIMARY KEY REFERENCES account ON DELETE CASCADE, revision bigint NOT NULL DEFAULT 0, snapshot jsonb NOT NULL DEFAULT '{}', prefs jsonb NOT NULL DEFAULT '{}');
+CREATE TABLE document (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner uuid REFERENCES account ON DELETE CASCADE NOT NULL, subject text NOT NULL, concept text NOT NULL, name text NOT NULL, digest text NOT NULL, content bytea NOT NULL, status text NOT NULL DEFAULT 'pendente', attempts int NOT NULL DEFAULT 0, retry_at timestamptz NOT NULL DEFAULT now(), error text NOT NULL DEFAULT '', model text, UNIQUE(owner,subject,concept,digest));
+CREATE TABLE chunk (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), doc uuid REFERENCES document ON DELETE CASCADE NOT NULL, ordinal int NOT NULL, page int, body text NOT NULL, embedding vector NOT NULL, UNIQUE(doc,ordinal));
+CREATE INDEX chunk_words ON chunk USING gin(to_tsvector('portuguese',body));
+CREATE TABLE conversation (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner uuid NOT NULL REFERENCES account ON DELETE CASCADE, subject text NOT NULL, concept text NOT NULL, docs uuid[] NOT NULL, created timestamptz DEFAULT now());
+CREATE TABLE message (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, convo uuid NOT NULL REFERENCES conversation ON DELETE CASCADE, question text NOT NULL, result jsonb NOT NULL, created timestamptz DEFAULT now());
+CREATE TABLE event (owner uuid REFERENCES account ON DELETE CASCADE, id text NOT NULL, kind text NOT NULL, occurred timestamptz NOT NULL, info jsonb NOT NULL, PRIMARY KEY(owner,id));
+CREATE TABLE notice (owner uuid REFERENCES account ON DELETE CASCADE, id text NOT NULL, details jsonb NOT NULL, status text NOT NULL DEFAULT 'pendente', seen boolean NOT NULL DEFAULT false, created timestamptz DEFAULT now(), PRIMARY KEY(owner,id));
+CREATE TABLE report (owner uuid REFERENCES account ON DELETE CASCADE, week date NOT NULL, details jsonb NOT NULL, PRIMARY KEY(owner,week));
+CREATE TABLE usage (owner uuid REFERENCES account ON DELETE CASCADE, bucket timestamptz NOT NULL, requests int NOT NULL, tokens int NOT NULL DEFAULT 0, PRIMARY KEY(owner,bucket));

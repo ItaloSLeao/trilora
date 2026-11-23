@@ -1,0 +1,4 @@
+Oficina Ipê — roteiro de recursão
+Na oficina Ipê, desenhe a pilha de chamadas antes de executar o programa. Marque o primeiro quadro com um triângulo.
+O caso base devolve um resultado sem nova chamada recursiva. No caso recursivo, cada chamada trabalha com uma entrada mais próxima do caso base.
+Na atividade da escada, o contador diminui duas unidades por chamada. A atividade começa com um número par positivo e termina em zero.
