@@ -7,12 +7,27 @@ import { Agenda } from './features/Agenda'
 import { ClockProvider } from './application/clock'
 import { Flashcards } from './features/Flashcards'
 import { Study } from './features/Study'
+import { Dashboard } from './features/Dashboard'
+import { Portability } from './features/Portability'
+import { Progress } from './features/Progress'
+import { useToday } from './application/today'
 import './ui/base.css'
+import './ui/dashboard.css'
 import './ui/practice.css'
 import './ui/calendar.css'
 
 function App() {
   const { page, tab } = useRoute()
-  return <Shell page={page}>{page === 'conhecimentos' ? <Knowledge tab={tab}/> : page === 'agenda' ? <Agenda/> : page === 'revisao' ? <Flashcards tab={tab}/> : page === 'estudo' ? <Study activityId={tab}/> : <h1>Meu espaço de estudo</h1>}</Shell>
+  const today = useToday()
+  const views = {
+    painel: <Dashboard today={today}/>,
+    conhecimentos: <Knowledge tab={tab}/>,
+    agenda: <Agenda/>,
+    revisao: <Flashcards tab={tab}/>,
+    estudo: <Study activityId={tab}/>,
+    progresso: <Progress today={today}/>,
+    dados: <Portability/>,
+  }
+  return <Shell page={page}>{views[page]}</Shell>
 }
 createRoot(document.getElementById('root')!).render(<WorkspaceProvider><ClockProvider><App/></ClockProvider></WorkspaceProvider>)
