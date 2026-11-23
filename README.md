@@ -2,6 +2,10 @@
 
 Projeto de Engenharia de Software em HTML, CSS e JavaScript. Reúne planejamento acadêmico, revisão com flashcards e acompanhamento do tempo de estudo.
 
+## Reconstrução Trilora Atlas
+
+A aplicação original de JoabKaimon permanece na raiz. O [Trilora Atlas](atlas/README.md) é uma implementação local em React e TypeScript que conecta objetivos, prática, revisão e reflexão. Tem banco independente e importação explícita dos dados originais. Consulte a [origem do Trilora](https://github.com/JoabKaimon/trilora) e a [documentação pedagógica do Atlas](atlas/docs/pedagogia.md).
+
 ## Funcionalidades e uso
 
 - **Disciplinas.** Cadastre disciplinas com cores e acompanhe o andamento das tarefas na visão geral. A exclusão é bloqueada enquanto houver tarefas, baralhos ou uma sessão de tempo ativa vinculada.

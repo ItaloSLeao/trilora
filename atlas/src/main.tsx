@@ -20,14 +20,20 @@ function App() {
   const { page, tab } = useRoute()
   const today = useToday()
   const views = {
-    painel: <Dashboard today={today}/>,
-    conhecimentos: <Knowledge tab={tab}/>,
-    agenda: <Agenda/>,
-    revisao: <Flashcards tab={tab}/>,
-    estudo: <Study activityId={tab}/>,
-    progresso: <Progress today={today}/>,
-    dados: <Portability/>,
+    painel: <Dashboard today={today} />,
+    conhecimentos: <Knowledge tab={tab} />,
+    agenda: <Agenda />,
+    revisao: <Flashcards tab={tab} />,
+    estudo: <Study activityId={tab} />,
+    progresso: <Progress today={today} />,
+    dados: <Portability />,
   }
   return <Shell page={page}>{views[page]}</Shell>
 }
-createRoot(document.getElementById('root')!).render(<WorkspaceProvider><ClockProvider><App/></ClockProvider></WorkspaceProvider>)
+createRoot(document.getElementById('root')!).render(
+  <WorkspaceProvider>
+    <ClockProvider>
+      <App />
+    </ClockProvider>
+  </WorkspaceProvider>,
+)

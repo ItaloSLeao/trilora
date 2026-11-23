@@ -1,1 +1,80 @@
-.study-layout{max-width:760px}.steps{display:flex;border-bottom:1px solid var(--line);gap:24px;margin-bottom:20px;color:var(--muted)}.steps span{padding:6px 0 10px}.steps [aria-current]{border-bottom:3px solid var(--forest);font-weight:700;color:var(--forest)}.clock{display:flex;align-items:center;gap:16px;color:var(--forest);margin:16px 0}.clock strong{font-variant-numeric:tabular-nums;font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.1;letter-spacing:-.05em}.study-actions{margin-top:18px}.question{font-family:var(--serif);font-size:1.8rem;line-height:1.25;font-weight:400;margin:20px 0;white-space:pre-wrap}.answer,.feedback{border-radius:9px;padding:14px;background:#edf3ec;white-space:pre-wrap}.answer p{margin-top:4px}.feedback{background:#fcf4df;margin-top:14px}.icon-box{width:42px;height:42px;border-radius:12px;display:inline-grid;place-items:center;flex:none}.sage{background:#e4eee4;color:#336448}.lilac{background:#ece7f5;color:#67528c}.sand{background:#f9edd5;color:#895924}.blue{background:#e4edf4;color:#3e6578}
+.study-layout {
+  max-width: 760px;
+}
+.steps {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  gap: 24px;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+.steps span {
+  padding: 6px 0 10px;
+}
+.steps [aria-current] {
+  border-bottom: 3px solid var(--forest);
+  font-weight: 700;
+  color: var(--forest);
+}
+.clock {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--forest);
+  margin: 16px 0;
+}
+.clock strong {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+}
+.study-actions {
+  margin-top: 18px;
+}
+.question {
+  font-family: var(--serif);
+  font-size: 1.8rem;
+  line-height: 1.25;
+  font-weight: 400;
+  margin: 20px 0;
+  white-space: pre-wrap;
+}
+.answer,
+.feedback {
+  border-radius: 9px;
+  padding: 14px;
+  background: #edf3ec;
+  white-space: pre-wrap;
+}
+.answer p {
+  margin-top: 4px;
+}
+.feedback {
+  background: #fcf4df;
+  margin-top: 14px;
+}
+.icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.sage {
+  background: #e4eee4;
+  color: #336448;
+}
+.lilac {
+  background: #ece7f5;
+  color: #67528c;
+}
+.sand {
+  background: #f9edd5;
+  color: #895924;
+}
+.blue {
+  background: #e4edf4;
+  color: #3e6578;
+}
