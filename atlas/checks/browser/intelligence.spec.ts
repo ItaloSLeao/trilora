@@ -104,3 +104,58 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page.getByRole('link', { name: 'Progresso', exact: true }).click()
   await expect(page.getByText('1 acerto(s) · 1 erro(s)')).toBeVisible()
 })
+
+test('explica quando a pergunta aguarda indexação ou seleção da fonte', async ({
+  page,
+}) => {
+  let status = 'pendente'
+  await page.route('**/api/state', (route) => route.fulfill({ json: {} }))
+  await page.route('**/api/conversations', (route) =>
+    route.fulfill({ json: [] }),
+  )
+  await page.route('**/api/documents', (route) =>
+    route.fulfill({
+      json: [
+        { id: 'doc', name: 'capítulo.pdf', subject: 's', concept: '', status },
+      ],
+    }),
+  )
+  const data = blank()
+  data.subjects.push({ id: 's', name: 'Biologia', color: '#123456' })
+  await page.goto('/#dados')
+  await page.getByLabel('Arquivo JSON').setInputFiles({
+    name: 'plano.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({ format: 'trilora-atlas', version: 1, data }),
+    ),
+  })
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Confirmar importação' }).click()
+  await expect(dialog).toBeHidden()
+  await page.goto('/#inteligencia/tutor')
+  await page.getByLabel('Usuário').fill('estudante')
+  await page.getByLabel('Senha').fill('credencial-de-teste')
+  await page.getByRole('button', { name: 'Conectar' }).click()
+  const send = page.getByRole('button', { name: 'Enviar pergunta' })
+  await page.getByLabel('Pergunta', { exact: true }).fill('O que é uma célula?')
+  await expect(send).toBeDisabled()
+  await expect(send).toHaveAccessibleDescription(/Aguarde a indexação/)
+  status = 'pronto'
+  await expect(send).toHaveAccessibleDescription(
+    /Marque pelo menos um documento/,
+    { timeout: 10000 },
+  )
+  await page.getByRole('checkbox', { name: /capítulo.pdf/ }).check()
+  await expect(send).toBeEnabled()
+  await page.getByLabel('PDF textual, DOCX, TXT ou Markdown').setInputFiles({
+    name: 'livro-grande.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.alloc(4 * 1024 * 1024 + 1),
+  })
+  await expect(
+    page.getByRole('button', { name: 'Enviar e indexar' }),
+  ).toBeDisabled()
+  await expect(page.getByRole('alert')).toContainText('O arquivo excede 4 MiB')
+  await expect(send).toBeEnabled()
+})

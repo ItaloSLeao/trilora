@@ -10,6 +10,8 @@ import {
   type Thread,
 } from './remote'
 
+const maxDocumentBytes = 4 * 1024 * 1024
+
 interface Message {
   id: number
   question: string
@@ -19,6 +21,7 @@ export function Tutor({ conceptId }: { conceptId: string }) {
   const { data } = useWorkspace(),
     { call, stream, file: getFile } = useRemote(),
     { run, error, busy } = useAction()
+  const upload = useAction()
   const [subject, subjectSet] = useState(
       data.concepts.find((c) => c.id === conceptId)?.subject ??
         data.subjects[0]?.id ??
@@ -43,6 +46,31 @@ export function Tutor({ conceptId }: { conceptId: string }) {
   const [practice, practiceCard] = useState('')
   const controller = useRef<AbortController | null>(null)
   const [provisional, preview] = useState('')
+  const uploadSizeError = file && file.size > maxDocumentBytes
+  const library = docs.filter((d) => d.subject === subject)
+  const pendingDocuments = library.some((d) =>
+    ['pendente', 'processando'].includes(d.status),
+  )
+  const readyDocuments = library.some(
+    (d) =>
+      d.status === 'pronto' &&
+      (!concept || !d.concept || d.concept === concept),
+  )
+  let sourceHint = 'Envie um documento na biblioteca para começar.'
+  if (selected.length > 8) sourceHint = 'Selecione no máximo oito documentos.'
+  else if (selected.length)
+    sourceHint = `${selected.length} documento(s) selecionado(s) para a pergunta.`
+  else if (readyDocuments)
+    sourceHint = 'Marque pelo menos um documento pronto na biblioteca.'
+  else if (pendingDocuments)
+    sourceHint =
+      'Aguarde a indexação e marque o documento quando estiver pronto.'
+  else if (uploadSizeError)
+    sourceHint = 'Escolha um arquivo de até 4 MiB na biblioteca.'
+  else if (library.length)
+    sourceHint =
+      'Selecione outro conceito ou confira o status dos documentos na biblioteca.'
+
   useEffect(() => () => controller.current?.abort(), [])
   async function downloadDocument(d: Doc) {
     const blob = await getFile(d.id)
@@ -183,9 +211,9 @@ export function Tutor({ conceptId }: { conceptId: string }) {
         </Field>
         <button
           className="primary"
-          disabled={!subject || !file || busy}
+          disabled={!subject || !file || uploadSizeError || upload.busy || busy}
           onClick={() =>
-            run(async () => {
+            upload.run(async () => {
               if (!file) return
               await call(
                 'documents?' +
@@ -200,71 +228,81 @@ export function Tutor({ conceptId }: { conceptId: string }) {
         >
           Enviar e indexar
         </button>
-        {docs
-          .filter((d) => d.subject === subject)
-          .map((d) => (
-            <div className="list-row" key={d.id}>
-              <label className="grow">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(d.id)}
-                  disabled={
-                    d.status !== 'pronto' ||
-                    !!thread ||
-                    (!!concept && !!d.concept && concept !== d.concept)
-                  }
-                  onChange={(e) =>
-                    select(
-                      e.target.checked
-                        ? [...selected, d.id]
-                        : selected.filter((k) => k !== d.id),
-                    )
-                  }
-                />{' '}
-                {d.name}
-                <small>
-                  {d.status} ·{' '}
-                  {data.concepts.find((c) => c.id === d.concept)?.name ??
-                    'Disciplina'}{' '}
-                  {d.error}
-                </small>
-              </label>
-              <button
-                className="text-btn"
-                onClick={() => run(() => downloadDocument(d))}
-              >
-                Baixar original
-              </button>
-              {d.status === 'falhou' && (
-                <button
-                  onClick={() =>
-                    run(async () => {
-                      await call('documents/' + d.id + '/retry', 'POST')
-                      await refresh()
-                    })
-                  }
-                >
-                  Reprocessar
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  if (
-                    confirm(
-                      'Excluir documento, fragmentos e conversas associadas?',
-                    )
+        {uploadSizeError && (
+          <p role="alert" className="error">
+            O arquivo excede 4 MiB. Para usar um livro grande, envie um capítulo
+            menor com texto selecionável.
+          </p>
+        )}
+        {upload.error && (
+          <p role="alert" className="error">
+            {upload.error}
+          </p>
+        )}
+        {upload.busy && <p role="status">Enviando documento…</p>}
+        {library.map((d) => (
+          <div className="list-row" key={d.id}>
+            <label className="grow">
+              <input
+                type="checkbox"
+                checked={selected.includes(d.id)}
+                disabled={
+                  d.status !== 'pronto' ||
+                  !!thread ||
+                  (!!concept && !!d.concept && concept !== d.concept)
+                }
+                onChange={(e) =>
+                  select(
+                    e.target.checked
+                      ? [...selected, d.id]
+                      : selected.filter((k) => k !== d.id),
                   )
-                    void run(async () => {
-                      await call('documents/' + d.id, 'DELETE')
-                      reset()
-                      await refresh()
-                    })
-                }}
+                }
+              />{' '}
+              {d.name}
+              <small>
+                {d.status} ·{' '}
+                {data.concepts.find((c) => c.id === d.concept)?.name ??
+                  'Disciplina'}{' '}
+                {d.error}
+              </small>
+            </label>
+            <button
+              className="text-btn"
+              onClick={() => run(() => downloadDocument(d))}
+            >
+              Baixar original
+            </button>
+            {d.status === 'falhou' && (
+              <button
+                onClick={() =>
+                  run(async () => {
+                    await call('documents/' + d.id + '/retry', 'POST')
+                    await refresh()
+                  })
+                }
               >
-                Excluir
+                Reprocessar
               </button>
-            </div>
-          ))}
+            )}
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    'Excluir documento, fragmentos e conversas associadas?',
+                  )
+                )
+                  void run(async () => {
+                    await call('documents/' + d.id, 'DELETE')
+                    reset()
+                    await refresh()
+                  })
+              }}
+            >
+              Excluir
+            </button>
+          </div>
+        ))}
       </Panel>
       <Panel title="Conversas">
         <button className="secondary" onClick={reset}>
@@ -385,11 +423,14 @@ export function Tutor({ conceptId }: { conceptId: string }) {
           </Field>
           <p>
             Ao enviar, o modelo recebe a pergunta, o objetivo escolhido, os
-            trechos recuperados e até três trocas anteriores. Selecione até oito
-            documentos prontos. A pergunta e a resposta serão guardadas no
-            histórico desta conversa.
+            trechos recuperados e até três trocas anteriores. A pergunta e a
+            resposta serão guardadas no histórico desta conversa.
+          </p>
+          <p id="tutor-source-hint" role="status" className="hint">
+            {sourceHint}
           </p>
           <button
+            aria-describedby="tutor-source-hint"
             disabled={busy || !selected.length || selected.length > 8}
             className="primary"
           >
