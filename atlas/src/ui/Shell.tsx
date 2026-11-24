@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Map,
   Menu,
+  MessagesSquare,
   PanelLeftClose,
   ShieldCheck,
   Timer,
@@ -26,13 +27,14 @@ const icons: Record<Page, LucideIcon> = {
   estudo: Timer,
   progresso: ChartNoAxesColumnIncreasing,
   inteligencia: Compass,
+  tutor: MessagesSquare,
   dados: Database,
 }
 const groups: { title: string; keys: Page[] }[] = [
   { title: 'Meu espaço', keys: ['painel', 'agenda', 'conhecimentos'] },
   {
     title: 'Aprendizagem',
-    keys: ['revisao', 'estudo', 'progresso', 'inteligencia'],
+    keys: ['revisao', 'estudo', 'progresso', 'tutor', 'inteligencia'],
   },
 ]
 export function Shell({ page, children }: { page: Page; children: ReactNode }) {

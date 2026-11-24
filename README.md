@@ -8,9 +8,9 @@ A aplicação original de JoabKaimon permanece na raiz. O [Trilora Atlas](atlas/
 
 ## Monitor, Tutor e Adaptive
 
-O Atlas mantém organização e estudo no IndexedDB. A aba **Acompanhamento** pode se conectar a um serviço FastAPI privado com PostgreSQL/pgvector e Ollama. Ela traz biblioteca de documentos, conversa com fontes, exercícios sujeitos a aprovação, recomendações e resumos semanais. As duas origens de dados se ligam por uma projeção acadêmica que o estudante autoriza.
+O Atlas mantém organização e estudo no IndexedDB. A aba **Acompanhamento** pode se conectar a um serviço FastAPI privado com PostgreSQL/pgvector e Ollama. A aba **Tutor** reúne chat, histórico e biblioteca. **Acompanhamento** reúne recomendações e resumos semanais. As duas origens de dados se ligam por uma projeção acadêmica que o estudante autoriza.
 
-O [guia de execução da integração](docs/ai-integration/deployment.md) contém os pré-requisitos, configuração de banco e modelos, migrações, criação de conta, inicialização dos workers, frontend e comandos de teste. Consulte também a [arquitetura](docs/ai-integration/architecture.md), a [privacidade](docs/ai-integration/security-and-privacy.md) e a [avaliação do RAG](docs/ai-integration/evaluation.md).
+Para iniciar todo o Atlas em um terminal, execute `./trilora-dev` na raiz. O [guia de execução da integração](docs/ai-integration/deployment.md) contém os pré-requisitos, configuração de banco e modelos, migrações, criação de conta, inicialização dos workers, frontend e comandos de teste. Consulte também a [arquitetura](docs/ai-integration/architecture.md), a [privacidade](docs/ai-integration/security-and-privacy.md) e a [avaliação do RAG](docs/ai-integration/evaluation.md).
 
 ## Funcionalidades e uso
 

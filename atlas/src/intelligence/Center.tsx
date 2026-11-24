@@ -4,72 +4,66 @@ import { useWorkspace } from '../application/workspace'
 import { Panel, Field, PageTitle } from '../ui/components'
 import { projection } from './projection'
 import { useAction, useRemote, type Notice, type State } from './remote'
-import { Tutor } from './Tutor'
 
-export function Intelligence({ tab }: { tab: string }) {
-  const remote = useRemote()
-  const [name, setName] = useState(''),
-    [password, setPassword] = useState('')
-  const { run, busy, error } = useAction()
+export function Intelligence() {
+  const { user, logout } = useRemote()
   return (
     <>
       <PageTitle
         title="Acompanhamento acadêmico"
-        subtitle="Monitor, biblioteca e tutor contextualizado."
-      />
-      {remote.user ? (
-        <>
-          <div className="tabs">
-            <a href="#inteligencia">Central</a>
-            <a href="#inteligencia/tutor">Biblioteca e tutor</a>
-            <button onClick={remote.logout}>Sair de {remote.user}</button>
-          </div>
-          {tab.startsWith('tutor') ? (
-            <Tutor key={tab} conceptId={decodeURIComponent(tab.slice(6))} />
-          ) : (
-            <Monitor />
-          )}
-        </>
-      ) : (
-        <Panel title="Conectar ao serviço">
-          <p>
-            Os recursos locais continuam disponíveis. Entre com a conta criada
-            pelo administrador do servidor.
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              void run(async () => {
-                await remote.login(name, password)
-                setPassword('')
-              })
-            }}
-          >
-            <Field label="Usuário">
-              <input
-                autoComplete="username"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </Field>
-            <Field label="Senha">
-              <input
-                autoComplete="current-password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-            <button className="primary" disabled={busy}>
-              Conectar
-            </button>
-          </form>
-          {error && <p role="alert">{error}</p>}
-        </Panel>
-      )}
+        subtitle="Acompanhe alertas, recomendações e seu resumo semanal."
+      >
+        {user && (
+          <button className="secondary" onClick={logout}>
+            Sair de {user}
+          </button>
+        )}
+      </PageTitle>
+      {user ? <Monitor /> : <ServiceLogin />}
     </>
+  )
+}
+
+export function ServiceLogin() {
+  const remote = useRemote()
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const { run, busy, error } = useAction()
+  return (
+    <Panel title="Conectar ao serviço">
+      <p>Entre com a conta local criada para o Atlas.</p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void run(async () => {
+            await remote.login(name, password)
+            setPassword('')
+          })
+        }}
+      >
+        <Field label="Usuário">
+          <input
+            autoComplete="username"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        <Field label="Senha">
+          <input
+            autoComplete="current-password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <button className="primary" disabled={busy}>
+          Conectar
+        </button>
+      </form>
+      {error && <p role="alert">{error}</p>}
+    </Panel>
   )
 }
 interface Report {
@@ -206,8 +200,7 @@ function Monitor() {
                 className="text-btn"
                 href={
                   n.details.action === 'tutor'
-                    ? '#inteligencia/tutor:' +
-                      encodeURIComponent(n.details.concept)
+                    ? '#tutor/' + encodeURIComponent(n.details.concept)
                     : '#' + n.details.action
                 }
               >

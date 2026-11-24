@@ -280,7 +280,8 @@ def create_conversation(body: Thread, owner=User):
 def conversations(offset: int = Query(0, ge=0), owner=User):
     return page_rows(
         "conversation",
-        "id,subject,concept,docs,created",
+        """id,subject,concept,docs,created,
+        (SELECT left(question, 90) FROM message WHERE convo=conversation.id ORDER BY id LIMIT 1) AS title""",
         "created DESC,id",
         owner,
         offset,

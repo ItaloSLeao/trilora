@@ -48,7 +48,10 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page.getByRole('button', { name: 'Salvar preferências' }).click()
   await expect(page.getByText('Preferências salvas.')).toBeVisible()
   await page.getByLabel('Compartilhar alterações futuras').check()
-  await page.getByRole('link', { name: 'Biblioteca e tutor' }).click()
+  await page.getByRole('link', { name: 'Tutor', exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Biblioteca de documentos', exact: true })
+    .click()
   await page
     .getByRole('combobox', { name: 'Conceito do tutor' })
     .selectOption('c')
@@ -59,6 +62,8 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page
     .getByRole('checkbox', { name: /botanica.pdf/ })
     .check({ timeout: 20000 })
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.getByText('Modo e complexidade', { exact: true }).click()
   await page.getByLabel('Modo pedagógico').selectOption('Praticar')
   await page
     .getByLabel('Pergunta', { exact: true })
@@ -71,6 +76,21 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page.getByRole('button', { name: 'Revisar para flashcard' }).click()
   await page.getByRole('button', { name: 'Aprovar e salvar flashcard' }).click()
   await expect(page.getByText('Cartão salvo no Atlas.')).toBeVisible()
+  await page.getByRole('button', { name: 'Nova conversa', exact: true }).click()
+  await expect(page.getByLabel('Pergunta', { exact: true })).toBeFocused()
+  await expect(
+    page.getByRole('heading', { name: 'Nova conversa' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Revisar para flashcard' }),
+  ).toHaveCount(0)
+  const history = page.getByRole('complementary', {
+    name: 'Histórico de conversas',
+  })
+  await history.getByRole('button', { name: /Biologia/ }).click()
+  await expect(
+    page.getByRole('button', { name: 'Revisar para flashcard' }),
+  ).toBeVisible()
   await page.getByRole('link', { name: 'Flashcards', exact: true }).click()
   await page.getByRole('button', { name: 'Revisar pendentes' }).click()
   await page.getByRole('button', { name: 'Mostrar resposta' }).click()
@@ -83,6 +103,7 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
     await expect(page.getByText(/Clorofila: 1 erro/).first()).toBeVisible()
   }).toPass({ timeout: 10000 })
   await page.getByRole('link', { name: 'Praticar com o Tutor' }).first().click()
+  await page.getByText('Contexto e documentos', { exact: true }).click()
   await expect(
     page.getByRole('combobox', { name: 'Conceito do tutor' }),
   ).toHaveValue('c')
@@ -109,17 +130,19 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
   page,
 }) => {
   let status = 'pendente'
+  let delay = false
   await page.route('**/api/state', (route) => route.fulfill({ json: {} }))
   await page.route('**/api/conversations', (route) =>
     route.fulfill({ json: [] }),
   )
-  await page.route('**/api/documents', (route) =>
-    route.fulfill({
+  await page.route('**/api/documents', async (route) => {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, 800))
+    await route.fulfill({
       json: [
         { id: 'doc', name: 'capítulo.pdf', subject: 's', concept: '', status },
       ],
-    }),
-  )
+    })
+  })
   const data = blank()
   data.subjects.push({ id: 's', name: 'Biologia', color: '#123456' })
   await page.goto('/#dados')
@@ -141,13 +164,21 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
   await page.getByLabel('Pergunta', { exact: true }).fill('O que é uma célula?')
   await expect(send).toBeDisabled()
   await expect(send).toHaveAccessibleDescription(/Aguarde a indexação/)
+  delay = true
+  await expect(
+    page.getByRole('button', { name: 'Nova conversa', exact: true }),
+  ).toBeEnabled()
   status = 'pronto'
   await expect(send).toHaveAccessibleDescription(
     /Marque pelo menos um documento/,
     { timeout: 10000 },
   )
+  await page.getByText('Contexto e documentos', { exact: true }).click()
   await page.getByRole('checkbox', { name: /capítulo.pdf/ }).check()
   await expect(send).toBeEnabled()
+  await page
+    .getByRole('button', { name: 'Biblioteca de documentos', exact: true })
+    .click()
   await page.getByLabel('PDF textual, DOCX, TXT ou Markdown').setInputFiles({
     name: 'livro-grande.pdf',
     mimeType: 'application/pdf',
@@ -157,5 +188,15 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
     page.getByRole('button', { name: 'Enviar e indexar' }),
   ).toBeDisabled()
   await expect(page.getByRole('alert')).toContainText('O arquivo excede 4 MiB')
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await expect(send).toBeEnabled()
+  await page.setViewportSize({ width: 320, height: 850 })
+  await expect(
+    page.getByRole('log', { name: 'Mensagens da conversa' }),
+  ).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
 })

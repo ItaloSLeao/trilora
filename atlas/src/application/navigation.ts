@@ -7,6 +7,7 @@ export const pages = {
   estudo: 'Modo de estudo',
   progresso: 'Progresso',
   inteligencia: 'Acompanhamento',
+  tutor: 'Tutor',
   dados: 'Meus dados',
 } as const
 export type Page = keyof typeof pages
@@ -18,6 +19,12 @@ export function useRoute() {
     return () => window.removeEventListener('hashchange', sync)
   }, [])
   const [path, tab = ''] = hash.slice(1).split('/')
+  if (
+    path === 'inteligencia' &&
+    (tab === 'tutor' || tab.startsWith('tutor:'))
+  ) {
+    return { page: 'tutor' as const, tab: tab.slice(6) }
+  }
   return {
     page:
       path && Object.hasOwn(pages, path) ? (path as Page) : ('painel' as Page),

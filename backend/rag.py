@@ -24,7 +24,11 @@ class OllamaModels:
         self.model = os.getenv("CHAT_MODEL", "qwen2.5:3b")
 
     def embed(self, texts):
-        vectors = self.client.embed(model=self.embedding_model, input=texts).embeddings
+        vectors = self.client.embed(
+            model=self.embedding_model,
+            input=texts,
+            options={"num_gpu": int(os.getenv("OLLAMA_NUM_GPU", "0"))},
+        ).embeddings
         if len(vectors) != len(texts) or not all(
             v and all(math.isfinite(x) for x in v) for v in vectors
         ):

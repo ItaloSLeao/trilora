@@ -2,6 +2,20 @@
 
 São necessários Node 22.12 ou superior, npm, Docker com Compose e Ollama com modelos disponíveis. A aplicação acadêmica sem integração continua executável apenas com npm. Não há migração automática de registros do estudante.
 
+## Inicialização em um terminal
+
+Na raiz do repositório, use:
+
+```sh
+./trilora-dev
+```
+
+O script prepara dependências quando necessário, mantém o PostgreSQL no Compose, aplica migrações e inicia a API, os workers e o Vite. Ele usa o Ollama local já ativo ou inicia um processo local. Os modelos configurados devem existir no Ollama. Na primeira execução, o script cria `backend/.env` com uma senha exclusiva para um banco novo. Configurações e volumes existentes são reutilizados. O script mantém o endereço `http://127.0.0.1:5173` para acessar o mesmo espaço local do navegador. Ctrl+C encerra os processos da sessão e o banco Docker continua disponível.
+
+Para criar uma conta pela primeira vez, execute `./trilora-dev user estudante`. O comando pede a senha interativamente. Entre em **Tutor** para abrir o chat. Pela aba **Biblioteca de documentos**, envie um material e acompanhe o estado daquela linha. Em **Chat → Contexto e documentos**, marque uma fonte pronta antes de enviar. **Nova conversa** abre um rascunho e foca o campo de pergunta. O histórico anterior continua ao lado. O documento que falhou pode ser reenviado à fila pelo botão **Reprocessar**.
+
+## Execução integral em contêineres
+
 1. Na raiz, copie backend/.env.example para backend/.env e preencha POSTGRES_PASSWORD com um segredo alfanumérico exclusivo. Os modelos CHAT_MODEL e EMBED_MODEL precisam existir na instância configurada. Para o modelo padrão, execute `ollama pull qwen2.5:3b`.
 2. Para execução integral em contêineres, configure OLLAMA_HOST com um endereço acessível **a partir dos contêineres**. A porta de loopback do host não é a porta de loopback do contêiner. Restrinja o acesso ao provedor à rede de desenvolvimento. Para manter Ollama exclusivamente no loopback, use a alternativa nativa abaixo.
 3. Na raiz, execute:

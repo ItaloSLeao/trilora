@@ -14,9 +14,9 @@ npm run dev
 
 Abra o endereço local indicado pelo Vite, normalmente http://127.0.0.1:5173. Use sempre a mesma origem e perfil para reencontrar seus registros. Fontes, ícones e ilustração acompanham o build. A instalação das dependências exige acesso ao registro npm.
 
-## Acompanhamento opcional
+## Tutor e acompanhamento opcionais
 
-Para conectar monitor, biblioteca e tutor com fontes ao Atlas, siga o [guia do backend e dos modelos](../docs/ai-integration/deployment.md). A interface só envia o plano quando o estudante autoriza a projeção ou seu compartilhamento contínuo.
+Na raiz do projeto, execute `./trilora-dev` para iniciar interface, API, banco, workers e Ollama local. Abra **Tutor** no menu para acessar o chat e a biblioteca. Para criar uma primeira conta e ver os pré-requisitos, siga o [guia do backend e dos modelos](../docs/ai-integration/deployment.md). A interface só envia o plano quando o estudante autoriza a projeção ou seu compartilhamento contínuo.
 
 ## Primeiro percurso
 

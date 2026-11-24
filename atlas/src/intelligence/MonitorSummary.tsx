@@ -36,8 +36,7 @@ export function MonitorSummary() {
               className="text-btn"
               href={
                 n.details.action === 'tutor'
-                  ? '#inteligencia/tutor:' +
-                    encodeURIComponent(n.details.concept)
+                  ? '#tutor/' + encodeURIComponent(n.details.concept)
                   : '#' + n.details.action
               }
             >

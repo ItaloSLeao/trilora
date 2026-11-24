@@ -56,6 +56,7 @@ export interface Thread {
   subject: string
   concept: string
   docs: string[]
+  title?: string | null
   created: string
 }
 export interface Result {

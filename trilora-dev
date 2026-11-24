@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+services=()
+cleanup() {
+  if (( ${#services[@]} )); then
+    kill -TERM "${services[@]}" 2>/dev/null || true
+    wait "${services[@]}" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+fail() { printf '%s\n' "$*" >&2; exit 1; }
+for tool in docker python3 npm curl ollama; do
+  command -v "$tool" >/dev/null || fail "Instale $tool para iniciar o Atlas."
+done
+[[ "${1:-}" == "" || ( "$1" == user && $# == 2 ) ]] || fail "Uso: ./trilora-dev [user NOME]"
+
+config="${ATLAS_ENV_FILE:-backend/.env}"
+if [[ ! -e "$config" ]]; then
+  (umask 077; set -C; python3 -c '
+import secrets
+from pathlib import Path
+print(Path("backend/.env.example").read_text().replace("POSTGRES_PASSWORD=\n", "POSTGRES_PASSWORD="+secrets.token_hex(24)+"\n"), end="")
+' > "$config")
+fi
+local_ollama="${ATLAS_OLLAMA_HOST:-http://127.0.0.1:11434}"
+set -a
+source "$config"
+set +a
+[[ -n "${POSTGRES_PASSWORD:-}" ]] || fail "Preencha POSTGRES_PASSWORD em $config."
+export DATABASE_URL="$(python3 -c '
+from os import environ
+from urllib.parse import quote
+print("postgresql://atlas:"+quote(environ["POSTGRES_PASSWORD"],safe="")+"@127.0.0.1:"+environ.get("ATLAS_DB_PORT","55432")+"/atlas")
+')"
+export OLLAMA_HOST="$local_ollama"
+export MODEL_TIMEOUT="${MODEL_TIMEOUT:-150}"
+compose=(docker compose --env-file "$config")
+
+python=backend/.venv/bin/python
+[[ -x "$python" ]] || python3 -m venv backend/.venv
+if [[ ! -e backend/.venv/atlas-requirements || backend/requirements.txt -nt backend/.venv/atlas-requirements ]]; then
+  "$python" -m pip install -r backend/requirements.txt
+  touch backend/.venv/atlas-requirements
+fi
+"${compose[@]}" up -d --wait db
+"$python" -m backend.db migrate
+if [[ "${1:-}" == user ]]; then
+  "$python" -m backend.db user "$2"
+  exit
+fi
+
+if ! curl -fsS --max-time 2 "$OLLAMA_HOST/api/version" >/dev/null 2>&1; then
+  ollama serve &
+  services+=("$!")
+  for ((retry=0; retry<30; retry++)); do
+    curl -fsS --max-time 2 "$OLLAMA_HOST/api/version" >/dev/null 2>&1 && break
+    kill -0 "${services[0]}" 2>/dev/null || fail 'O serviço Ollama não iniciou.'
+    sleep 1
+  done
+  curl -fsS --max-time 2 "$OLLAMA_HOST/api/version" >/dev/null 2>&1 || fail 'O Ollama não respondeu no tempo esperado.'
+fi
+for model in "${CHAT_MODEL:-qwen2.5:3b}" "${EMBED_MODEL:-qwen2.5:3b}"; do
+  ollama show "$model" >/dev/null 2>&1 || fail "Modelo $model ausente. Rode ollama pull $model e tente novamente."
+done
+if [[ ! -e atlas/node_modules/.package-lock.json || atlas/package-lock.json -nt atlas/node_modules/.package-lock.json ]]; then
+  npm --prefix atlas ci
+fi
+
+"$python" -m uvicorn backend.api:app --host 127.0.0.1 --port 8001 --no-access-log &
+services+=("$!")
+api_pid=$!
+for ((retry=0; retry<30; retry++)); do
+  curl -fsS --max-time 2 http://127.0.0.1:8001/api/health >/dev/null 2>&1 && break
+  kill -0 "$api_pid" 2>/dev/null || fail 'A API do Atlas não iniciou. Verifique se a porta 8001 está livre.'
+  sleep 1
+done
+kill -0 "$api_pid" 2>/dev/null || fail 'A API do Atlas parou durante a inicialização.'
+curl -fsS --max-time 2 http://127.0.0.1:8001/api/health >/dev/null || fail 'A API do Atlas não respondeu no tempo esperado.'
+"$python" -m backend.worker index &
+services+=("$!")
+"$python" -m backend.worker monitor &
+services+=("$!")
+
+# Launch Vite directly so the PID belongs to the process this script can stop.
+(cd atlas; exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort) &
+services+=("$!")
+echo 'Atlas em http://127.0.0.1:5173 · Ctrl+C para encerrar os serviços da sessão.'
+if wait -n "${services[@]}"; then
+  fail 'Um serviço do Atlas foi encerrado. Confira as mensagens acima.'
+else
+  exit "$?"
+fi

@@ -1,3 +1,4 @@
+import { TutorPage } from './intelligence/Tutor'
 import { Intelligence } from './intelligence/Center'
 import { RemoteProvider } from './intelligence/remote'
 import { createRoot } from 'react-dom/client'
@@ -28,7 +29,8 @@ function App() {
     revisao: <Flashcards tab={tab} />,
     estudo: <Study activityId={tab} />,
     progresso: <Progress today={today} />,
-    inteligencia: <Intelligence tab={tab} />,
+    inteligencia: <Intelligence />,
+    tutor: <TutorPage key={tab} tab={tab} />,
     dados: <Portability />,
   }
   return <Shell page={page}>{views[page]}</Shell>

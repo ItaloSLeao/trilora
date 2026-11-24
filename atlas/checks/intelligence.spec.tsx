@@ -18,7 +18,7 @@ it('a central desconectada só acessa a rede após ação e informa indisponibil
   vi.stubGlobal('fetch', fetch)
   render(
     <RemoteProvider>
-      <Intelligence tab="" />
+      <Intelligence />
     </RemoteProvider>,
   )
   expect(fetch).not.toHaveBeenCalled()

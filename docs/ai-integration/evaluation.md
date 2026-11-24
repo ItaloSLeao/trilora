@@ -45,3 +45,7 @@ Na primeira execução local com qwen2.5:3b em CPU, a precisão documental macro
 O build de produção, a checagem TypeScript, os cinco arquivos da regressão Node original e os 15 testes Vitest passaram. O smoke test do Compose iniciou banco, migrações e dois workers e confirmou retorno HTTP 200 na API. A suíte de backend cobre também autorização de inscrição Web Push, aviso sem dados acadêmicos e deduplicação com transmissor controlado. Uma entrega pelo serviço real do navegador permanece por verificar.
 
 No reteste direcionado após a mudança de contrato, o Ollama devolveu abstinência explícita nos dois casos sem evidência. Os cinco casos respondíveis do primeiro ensaio permanecem como resultados daquela versão do prompt. A melhoria observada abrange os dois casos repetidos. A revisão semântica de citações e a avaliação com estudantes continuam em aberto.
+
+## Regressão da interface do Tutor
+
+O roteiro em Chromium verifica a área própria do Tutor, a consulta de indexação em segundo plano, o chat com estados de falta de fonte, a abertura e recuperação de conversas e o layout a 320 px. A suíte PostgreSQL diferencia expiração de uma chamada Ollama, modelo ausente e reprocessamento manual. O teste do script unificado subiu a interface, a API e os workers e indexou um PDF sintético com o Ollama local. Documentos com falha anterior permanecem disponíveis para reprocessamento pela biblioteca.

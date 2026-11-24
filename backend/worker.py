@@ -1,11 +1,37 @@
 import json
+import signal
 import logging
 import subprocess
 import sys
 import time
+from httpx import TimeoutException
+from ollama import ResponseError
+
 from .db import connect
 from .monitor import evaluate, record
 from .rag import OllamaModels
+
+
+class StopWorker(BaseException):
+    pass
+
+
+def stop_worker(_signum, _frame):
+    raise StopWorker()
+
+
+def indexing_error(exc, extraction_error):
+    if extraction_error:
+        return extraction_error
+    if isinstance(exc, TimeoutException):
+        return "O Ollama excedeu o tempo de espera ao gerar os embeddings."
+    if isinstance(exc, ResponseError):
+        if exc.status_code == 404:
+            return "Modelo de embeddings indisponível no Ollama."
+        return "O Ollama não conseguiu gerar os embeddings."
+    if isinstance(exc, ConnectionError):
+        return "O Ollama está inacessível. Verifique o serviço local."
+    return "A indexação falhou. Consulte o terminal do Atlas para detalhes técnicos."
 
 
 def index_once(provider):
@@ -18,6 +44,7 @@ def index_once(provider):
           ORDER BY retry_at FOR UPDATE OF d SKIP LOCKED LIMIT 1) RETURNING *""").fetchone()
     if not job:
         return False
+    extraction_error = ""
     try:
         run = subprocess.run(
             [sys.executable, "-m", "backend.ingest", job["name"]],
@@ -26,11 +53,20 @@ def index_once(provider):
             timeout=25,
         )
         if run.returncode:
-            raise ValueError(run.stderr.decode()[:160])
+            extraction_error = run.stderr.decode(errors="replace").strip()[:160]
+            raise ValueError(extraction_error)
         parts = json.loads(run.stdout)
         vectors = []
-        for i in range(0, len(parts), 16):
-            vectors.extend(provider.embed([p["body"] for p in parts[i : i + 16]]))
+        for i in range(0, len(parts), 4):
+            with connect() as db:
+                lease = db.execute(
+                    """UPDATE document SET retry_at=now()+interval '20 minutes'
+                    WHERE id=%s AND attempts=%s AND status='processando' RETURNING id""",
+                    (job["id"], job["attempts"]),
+                ).fetchone()
+            if not lease:
+                return True
+            vectors.extend(provider.embed([p["body"] for p in parts[i : i + 4]]))
         with connect() as db:
             valid = db.execute(
                 "SELECT id FROM document WHERE id=%s AND attempts=%s AND status='processando' FOR UPDATE",
@@ -58,18 +94,33 @@ def index_once(provider):
                 str(job["id"]),
                 {"document": str(job["id"])},
             )
+    except StopWorker:
+        with connect() as db:
+            db.execute(
+                """UPDATE document SET status='pendente',attempts=attempts-1,retry_at=now(),error=''
+                WHERE id=%s AND attempts=%s AND status='processando'""",
+                (job["id"], job["attempts"]),
+            )
+        raise
     except Exception as exc:
-        error = (
-            str(exc)[:160]
-            if isinstance(exc, ValueError) and "run" in locals() and run.returncode
-            else "Indexação indisponível. Confira o modelo configurado."
+        error = indexing_error(exc, extraction_error)
+        logging.warning(
+            json.dumps(
+                {
+                    "job": "index",
+                    "error": type(exc).__name__,
+                    "attempt": job["attempts"],
+                }
+            )
         )
         with connect() as db:
             db.execute(
                 "UPDATE document SET status=%s,error=%s,retry_at=now()+interval '1 minute' WHERE id=%s AND attempts=%s",
                 (
                     "falhou"
-                    if job["attempts"] >= 3 or isinstance(exc, ValueError)
+                    if job["attempts"] >= 3
+                    or isinstance(exc, ValueError)
+                    or (isinstance(exc, ResponseError) and exc.status_code == 404)
                     else "pendente",
                     error,
                     job["id"],
@@ -100,9 +151,7 @@ def monitor_once(now=None):
             )
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    mode = sys.argv[1]
+def run_worker(mode):
     while True:
         try:
             if mode == "monitor":
@@ -115,3 +164,12 @@ if __name__ == "__main__":
         except Exception as exc:
             logging.error(json.dumps({"job": mode, "error": type(exc).__name__}))
         time.sleep(60 if mode == "monitor" else 3)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    signal.signal(signal.SIGTERM, stop_worker)
+    try:
+        run_worker(sys.argv[1])
+    except (StopWorker, KeyboardInterrupt):
+        pass
