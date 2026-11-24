@@ -14,6 +14,10 @@ npm run dev
 
 Abra o endereço local indicado pelo Vite, normalmente http://127.0.0.1:5173. Use sempre a mesma origem e perfil para reencontrar seus registros. Fontes, ícones e ilustração acompanham o build. A instalação das dependências exige acesso ao registro npm.
 
+## Acompanhamento opcional
+
+Para conectar monitor, biblioteca e tutor com fontes ao Atlas, siga o [guia do backend e dos modelos](../docs/ai-integration/deployment.md). A interface só envia o plano quando o estudante autoriza a projeção ou seu compartilhamento contínuo.
+
 ## Primeiro percurso
 
 1. No painel, cadastre uma disciplina. Em **Conhecimentos**, registre um conceito e sua unidade, crie um objetivo observável e associe uma atividade a ele.
