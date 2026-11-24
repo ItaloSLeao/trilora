@@ -11,6 +11,7 @@ import {
 } from 'react'
 
 export interface Prefs {
+  tutor_enabled: boolean
   enabled: boolean
   categories: string[]
   quiet_start: number
@@ -147,6 +148,7 @@ async function readStream(
   }
 }
 interface Remote {
+  file: (id: string) => Promise<Blob>
   stream: (
     path: string,
     payload: unknown,
@@ -216,6 +218,22 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
         login,
         stream: (path, payload, signal, onDraft) =>
           readStream(session.auth, path, payload, signal, onDraft),
+        file: async (id) => {
+          const response = await fetch(
+            '/api/documents/' + encodeURIComponent(id) + '/file',
+            {
+              headers: { Authorization: 'Basic ' + session.auth },
+              cache: 'no-store',
+              redirect: 'error',
+            },
+          )
+          if (
+            !response.ok ||
+            response.headers.get('content-type') !== 'application/octet-stream'
+          )
+            throw Error('Arquivo indisponível.')
+          return response.blob()
+        },
         syncing,
         setSync,
         logout: () => {

@@ -234,6 +234,18 @@ def source(key: UUID, ordinal: int, owner=User):
         )
 
 
+@app.get("/api/documents/{key}/file")
+def document_file(key: UUID, owner=User):
+    with connect() as db:
+        row = found(
+            db.execute(
+                "SELECT name,content FROM document WHERE owner=%s AND id=%s",
+                (owner, key),
+            ).fetchone()
+        )
+    return Response(row["content"], media_type="application/octet-stream")
+
+
 @app.delete("/api/documents/{key}")
 def remove_doc(key: UUID, owner=User):
     with connect() as db:
@@ -308,6 +320,11 @@ def ask(key: UUID, body: Question, owner=User, provider=Depends(OllamaModels)):
                 "SELECT id FROM conversation WHERE id=%s AND owner=%s", (key, owner)
             ).fetchone()
         )
+        pref = db.execute(
+            "SELECT prefs FROM workspace WHERE owner=%s", (owner,)
+        ).fetchone()
+        if not Preferences(**pref["prefs"]).tutor_enabled:
+            raise HTTPException(403, "O tutor está desativado nas preferências.")
         usage = db.execute(
             """INSERT INTO usage VALUES(%s,date_trunc('hour',now()),1,0) ON CONFLICT(owner,bucket) DO UPDATE SET requests=usage.requests+1
         WHERE usage.requests<30 RETURNING bucket""",
@@ -432,3 +449,46 @@ async def stream_answer(
     return StreamingResponse(
         lines(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no"}
     )
+
+
+@app.get("/api/activities")
+def generated_activities(offset: int = Query(0, ge=0), owner=User):
+    with connect() as db:
+        return db.execute(
+            """SELECT m.id,m.convo,c.concept,c.subject,m.created,m.result->>'question' AS question,
+            m.result->>'expected' AS criterion,m.result->'sources' AS sources
+            FROM message m JOIN conversation c ON m.convo=c.id WHERE c.owner=%s AND coalesce(m.result->>'question','')!=''
+            ORDER BY m.id DESC LIMIT 50 OFFSET %s""",
+            (owner, offset),
+        ).fetchall()
+
+
+@app.get("/api/progress")
+def observed_progress(offset: int = Query(0, ge=0), owner=User):
+    from collections import defaultdict
+
+    with connect() as db:
+        row = db.execute(
+            "SELECT snapshot FROM workspace WHERE owner=%s", (owner,)
+        ).fetchone()
+    facts = row["snapshot"].get("facts", [])
+    attempts = defaultdict(list)
+    for f in facts:
+        if f["kind"] == "review" and f.get("concept"):
+            attempts[f["concept"]].append(f)
+    result = []
+    for c in sorted(
+        (f for f in facts if f["kind"] == "concept"), key=lambda f: f["id"]
+    )[offset : offset + 100]:
+        history = sorted(attempts[c["id"]], key=lambda r: r.get("at") or "")
+        result.append(
+            {
+                "concept": c["id"],
+                "name": c["name"],
+                "prerequisite": c["prerequisite"],
+                "attempts": len(history),
+                "correct": sum(r["correct"] is True for r in history),
+                "last_practice": history[-1]["at"] if history else None,
+            }
+        )
+    return result

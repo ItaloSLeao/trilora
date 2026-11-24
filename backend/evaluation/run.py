@@ -14,7 +14,7 @@ from backend.rag import OllamaModels
 from .score import CASES, evaluate
 
 
-def run(output):
+def run(output, resume=False):
     os.environ["DATABASE_URL"] = os.environ["ATLAS_TEST_DATABASE_URL"]
     migrate()
     name = "avaliacao-" + secrets.token_hex(6)
@@ -23,7 +23,7 @@ def run(output):
     client = TestClient(app, headers={"x-atlas-action": "1"})
     client.auth = (name, password)
     docs = {}
-    records = []
+    records = json.loads(output.read_text()) if resume else []
     try:
         for path in sorted(CASES.with_name("corpus").iterdir()):
             response = client.post(
@@ -35,6 +35,8 @@ def run(output):
             docs[path.name] = response.json()["id"]
             index_once(OllamaModels())
         for case in json.loads(CASES.read_text()):
+            if any(r["id"] == case["id"] for r in records):
+                continue
             thread = client.post(
                 "/api/conversations",
                 json={
@@ -68,4 +70,4 @@ def run(output):
 
 
 if __name__ == "__main__":
-    run(Path(sys.argv[1]))
+    run(Path(sys.argv[1]), "--resume" in sys.argv[2:])

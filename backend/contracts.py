@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Annotated, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -40,7 +40,7 @@ class Fact(Input):
     def timezone_required(cls, v):
         if v and not v.tzinfo:
             raise ValueError("Instante sem fuso horário.")
-        return v
+        return v.astimezone(timezone.utc) if v else v
 
     done: bool = False
     correct: bool | None = None
@@ -59,6 +59,7 @@ class Snapshot(Input):
 
 
 class Preferences(Input):
+    tutor_enabled: bool = True
     enabled: bool = True
     categories: list[Literal["prazos", "prática", "planejamento", "progresso"]] = [
         "prazos",
@@ -103,13 +104,20 @@ class Question(Input):
 
 
 class Answer(Input):
-    answer: str = Field(min_length=1, max_length=6000)
+    sufficient: bool = True
+    answer: str = Field(default="", max_length=6000)
     citations: list[UUID] = Field(max_length=6)
     question: str = Field(default="", max_length=500)
     expected: Text = ""
     choices: list[Annotated[str, Field(max_length=500)]] = Field(
         default_factory=list, max_length=5
     )
+
+    @model_validator(mode="after")
+    def require_supported_text(self):
+        if self.sufficient and not self.answer.strip():
+            raise ValueError("Uma resposta fundamentada precisa de texto.")
+        return self
 
 
 class Decision(Input):

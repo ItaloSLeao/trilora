@@ -17,7 +17,7 @@ interface Message {
 }
 export function Tutor({ conceptId }: { conceptId: string }) {
   const { data } = useWorkspace(),
-    { call, stream } = useRemote(),
+    { call, stream, file: getFile } = useRemote(),
     { run, error, busy } = useAction()
   const [subject, subjectSet] = useState(
       data.concepts.find((c) => c.id === conceptId)?.subject ??
@@ -44,6 +44,15 @@ export function Tutor({ conceptId }: { conceptId: string }) {
   const controller = useRef<AbortController | null>(null)
   const [provisional, preview] = useState('')
   useEffect(() => () => controller.current?.abort(), [])
+  async function downloadDocument(d: Doc) {
+    const blob = await getFile(d.id)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = d.name
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  }
   const refresh = async () => {
     const [d, t] = await Promise.all([
       call<Doc[]>('documents'),
@@ -220,6 +229,12 @@ export function Tutor({ conceptId }: { conceptId: string }) {
                   {d.error}
                 </small>
               </label>
+              <button
+                className="text-btn"
+                onClick={() => run(() => downloadDocument(d))}
+              >
+                Baixar original
+              </button>
               {d.status === 'falhou' && (
                 <button
                   onClick={() =>

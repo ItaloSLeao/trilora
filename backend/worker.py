@@ -14,8 +14,8 @@ def index_once(provider):
             "UPDATE document SET status='falhou',error='Processamento interrompido. Reprocesse o arquivo.' WHERE status='processando' AND attempts>=3 AND retry_at<=now()"
         )
         job = db.execute("""UPDATE document SET status='processando',attempts=attempts+1,retry_at=now()+interval '20 minutes'
-          WHERE id=(SELECT id FROM document WHERE status IN ('pendente','processando') AND retry_at<=now()
-          ORDER BY retry_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *""").fetchone()
+          WHERE id=(SELECT d.id FROM document d JOIN workspace w ON d.owner=w.owner WHERE coalesce((w.prefs->>'tutor_enabled')::boolean,true) AND status IN ('pendente','processando') AND retry_at<=now()
+          ORDER BY retry_at FOR UPDATE OF d SKIP LOCKED LIMIT 1) RETURNING *""").fetchone()
     if not job:
         return False
     try:
@@ -79,12 +79,25 @@ def index_once(provider):
     return True
 
 
-def monitor_once():
+def monitor_once(now=None):
+    from datetime import datetime, timezone, timedelta
+
+    now = now or datetime.now(timezone.utc)
     with connect() as db:
+        db.execute("""DELETE FROM message m USING conversation c,workspace w
+            WHERE m.convo=c.id AND c.owner=w.owner AND
+            m.created < now()-make_interval(days=>coalesce((w.prefs->>'retention_days')::int,90))""")
+        db.execute("""DELETE FROM event e USING workspace w WHERE e.owner=w.owner
+            AND e.occurred < now()-make_interval(days=>coalesce((w.prefs->>'retention_days')::int,90))""")
         for row in db.execute(
-            "SELECT * FROM workspace WHERE snapshot!='{}'::jsonb FOR UPDATE SKIP LOCKED"
+            "SELECT * FROM workspace WHERE snapshot!='{}'::jsonb AND next_check<=%s ORDER BY next_check FOR UPDATE SKIP LOCKED",
+            (now,),
         ).fetchall():
-            evaluate(db, row)
+            evaluate(db, row, now)
+            db.execute(
+                "UPDATE workspace SET next_check=%s WHERE owner=%s",
+                (now + timedelta(minutes=1), row["owner"]),
+            )
 
 
 if __name__ == "__main__":

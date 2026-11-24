@@ -54,7 +54,20 @@ def fragments(name, blob):
         pages = ((i, p.extract_text() or "") for i, p in enumerate(pdf.pages, 1))
     elif ext == "docx":
         with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+            types = ElementTree.fromstring(archive.read("[Content_Types].xml"))
+            if not any(
+                n.get("PartName") == "/word/document.xml"
+                and n.get("ContentType")
+                == "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+                for n in types
+            ):
+                raise ValueError("Tipo de documento Word inválido.")
             xml = ElementTree.fromstring(archive.read("word/document.xml"))
+            if xml.tag not in {
+                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}document",
+                "{http://purl.oclc.org/ooxml/wordprocessingml/main}document",
+            }:
+                raise ValueError("Documento Word inválido.")
         pages = [
             (None, "\n".join("".join(n.itertext()) for n in xml.findall(".//{*}p")))
         ]

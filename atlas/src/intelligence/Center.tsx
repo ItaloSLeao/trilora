@@ -266,6 +266,19 @@ function Monitor() {
               />{' '}
               Ativar notificações internas
             </label>
+            <label className="inline-check">
+              <input
+                type="checkbox"
+                checked={state.prefs.tutor_enabled}
+                onChange={(e) =>
+                  set({
+                    ...state,
+                    prefs: { ...state.prefs, tutor_enabled: e.target.checked },
+                  })
+                }
+              />{' '}
+              Permitir novas consultas e indexações por IA
+            </label>
             {['prazos', 'prática', 'planejamento', 'progresso'].map((c) => (
               <label className="inline-check" key={c}>
                 <input
@@ -311,10 +324,19 @@ function Monitor() {
                 />
               </Field>
             ))}
-            <p>
-              Fuso: {state.prefs.timezone}. Consumo registrado: {state.tokens}{' '}
-              tokens.
-            </p>
+            <Field label="Fuso horário da central">
+              <input
+                required
+                value={state.prefs.timezone}
+                onChange={(e) =>
+                  set({
+                    ...state,
+                    prefs: { ...state.prefs, timezone: e.target.value },
+                  })
+                }
+              />
+            </Field>
+            <p>Consumo registrado: {state.tokens} tokens.</p>
             <button className="primary" disabled={busy}>
               Salvar preferências
             </button>

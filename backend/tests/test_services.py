@@ -1,5 +1,5 @@
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -82,6 +82,8 @@ def test_private_pipeline_and_cleanup(clients):
     assert a.post("/api/documents", params=params, content=blob).json()["id"] == doc
     assert index_once(model)
     assert a.get("/api/documents").json()[0]["status"] == "pronto"
+    assert a.get(f"/api/documents/{doc}/file").content == blob
+    assert b.get(f"/api/documents/{doc}/file").status_code == 404
     assert b.get(f"/api/documents/{doc}/source/1").status_code == 404
     assert (
         b.post("/api/conversations", json={"subject": "s", "docs": [doc]}).status_code
@@ -122,15 +124,11 @@ def test_scheduler_conflict_and_decisions(clients):
         == 409
     )
     assert a.get("/api/notices").json() == []
-    with connect() as db:
-        db.execute(
-            "UPDATE workspace SET snapshot=jsonb_set(snapshot,'{facts,0,due}',to_jsonb(current_date::text)) WHERE owner IN (SELECT id FROM account WHERE login=%s)",
-            (a.test_login,),
-        )
-    monitor_once()
+    later = datetime.now(timezone.utc) + timedelta(days=2)
+    monitor_once(later)
     notice = a.get("/api/notices").json()[0]
     a.patch("/api/notices/" + notice["id"], json={"status": "ignorada"})
-    monitor_once()
+    monitor_once(later + timedelta(minutes=2))
     assert [n["status"] for n in a.get("/api/notices").json()] == ["ignorada"]
     assert not b.get("/api/notices").json()
     assert len(a.get("/api/events").json()) == 1
@@ -155,10 +153,13 @@ def test_extraction_pdf_docx_scanned():
         fragments("scan.pdf", out.getvalue())
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as archive:
-        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr(
+            "[Content_Types].xml",
+            '<Types><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+        )
         archive.writestr(
             "word/document.xml",
-            '<w:document xmlns:w="urn:word"><w:p><w:t>Células</w:t></w:p></w:document>',
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:t>Células</w:t></w:p></w:document>',
         )
     assert fragments("ficha.docx", out.getvalue())[0]["body"] == "Células"
 
@@ -178,9 +179,54 @@ def test_forged_citations_and_quota(clients):
     model.generate = lambda *args: (Answer(answer="Afirmação", citations=[uuid4()]), 2)
     assert a.post(path, json={"question": "clorofila?"}).status_code == 503
     assert a.get(path).json() == []
+    model.generate = lambda q, h, s: (
+        Answer(answer="Trecho relacionado", citations=[s[0]["id"]], sufficient=False),
+        2,
+    )
+    abstention = a.post(path, json={"question": "clorofila?"}).json()
+    assert not abstention["citations"] and not abstention["sufficient"]
     with connect() as db:
         db.execute(
             "UPDATE usage SET requests=30 WHERE owner=(SELECT id FROM account WHERE login=%s)",
             (a.test_login,),
         )
     assert a.post(path, json={"question": "clorofila?"}).status_code == 429
+
+
+def test_push_opt_in_and_deduplicated_delivery(clients, monkeypatch):
+    from backend.push import deliver_once
+
+    a, b, _ = clients
+    subscriptions = {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/" + str(uuid4()),
+        "keys": {"p256dh": "a" * 87, "auth": "b" * 22},
+    }
+    assert a.post("/api/push", json=subscriptions).status_code == 503
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "test-key")
+    monkeypatch.setenv("VAPID_PUBLIC_KEY", "test-public-key")
+    monkeypatch.setenv("VAPID_SUBJECT", "mailto:test@example.com")
+    calls = []
+    monkeypatch.setattr("pywebpush.webpush", lambda **kw: calls.append(kw))
+    assert a.post("/api/push", json=subscriptions).status_code == 200
+    assert b.post("/api/push", json=subscriptions).status_code == 409
+    assert (
+        a.put("/api/preferences", json={"quiet_start": 0, "quiet_end": 0}).status_code
+        == 200
+    )
+    facts = [
+        {
+            "id": "t",
+            "kind": "assessment",
+            "name": "Prova privada",
+            "due": date.today().isoformat(),
+        }
+    ]
+    assert (
+        a.put("/api/projection", json={"revision": 0, "facts": facts}).status_code
+        == 200
+    )
+    deliver_once()
+    deliver_once()
+    assert len(calls) == 1
+    assert "Prova privada" not in calls[0]["data"]
+    assert a.delete("/api/push").status_code == 200

@@ -34,10 +34,14 @@ def register(owner, sub):
     ):
         raise HTTPException(422, "Serviço de push incompatível.")
     with connect() as db:
-        db.execute(
-            "INSERT INTO push_subscription VALUES(%s,%s,%s) ON CONFLICT(endpoint) DO UPDATE SET keys=excluded.keys WHERE push_subscription.owner=excluded.owner",
+        updated = db.execute(
+            "INSERT INTO push_subscription VALUES(%s,%s,%s) ON CONFLICT(endpoint) DO UPDATE SET keys=excluded.keys WHERE push_subscription.owner=excluded.owner RETURNING endpoint",
             (owner, sub.endpoint, Jsonb(sub.keys.model_dump())),
-        )
+        ).fetchone()
+        if not updated:
+            raise HTTPException(
+                409, "Este dispositivo já está inscrito em outra conta."
+            )
     return {"saved": True}
 
 
