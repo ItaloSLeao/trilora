@@ -1,0 +1,2 @@
+CREATE TABLE push_subscription(owner uuid NOT NULL REFERENCES account ON DELETE CASCADE, endpoint text PRIMARY KEY, keys jsonb NOT NULL);
+CREATE TABLE push_delivery(endpoint text REFERENCES push_subscription ON DELETE CASCADE, notice_id text NOT NULL, generation timestamptz NOT NULL, attempts integer NOT NULL DEFAULT 0, retry_at timestamptz NOT NULL DEFAULT now(), delivered boolean NOT NULL DEFAULT false, PRIMARY KEY(endpoint,notice_id,generation));

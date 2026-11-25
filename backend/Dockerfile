@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt && useradd --create-home atlas
+COPY backend backend
+USER atlas
+CMD ["uvicorn","backend.api:app","--host","0.0.0.0","--port","8001","--no-access-log"]

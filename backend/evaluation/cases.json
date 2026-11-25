@@ -1,0 +1,9 @@
+[
+  {"id":"i1","question":"Qual figura identifica o primeiro quadro no roteiro Ipê?","selected":["recursao.txt","filas.md","agenda.txt"],"gold":["recursao.txt"],"answer":"Triângulo."},
+  {"id":"i2","question":"Como o contador da atividade da escada muda a cada chamada?","selected":["recursao.txt","filas.md"],"gold":["recursao.txt"],"answer":"Diminui duas unidades."},
+  {"id":"j1","question":"Qual ficha sai e onde é colocada a nova ficha?","selected":["recursao.txt","filas.md"],"gold":["filas.md"],"answer":"Sai a ficha da frente. A nova ficha entra ao final."},
+  {"id":"j2","question":"Quantas retiradas o roteiro pede antes de confrontar os comprimentos anotados?","selected":["recursao.txt","filas.md","agenda.txt"],"gold":["filas.md"],"answer":"Quatro remoções."},
+  {"id":"m1","question":"Em que sala ocorre a oficina Ipê e o que deve ser desenhado antes da execução?","selected":["recursao.txt","filas.md","agenda.txt"],"gold":["agenda.txt","recursao.txt"],"answer":"Sala Horizonte. Deve-se desenhar a pilha de chamadas."},
+  {"id":"n1","question":"Em que dia e horário começa a oficina Jatobá?","selected":["agenda.txt","filas.md"],"gold":[],"answer":"O material selecionado não informa dia nem horário."},
+  {"id":"n2","question":"Quantas remoções devem ser feitas no guichê da oficina Jatobá?","selected":["recursao.txt"],"gold":[],"answer":"O roteiro selecionado não informa esse número."}
+]

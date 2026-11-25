@@ -1,0 +1,7 @@
+# Auditoria da integração
+
+Base 17ef036 em feat/ai-learning-platform, árvore limpa. Antes das edições passaram os cinco arquivos de testes da raiz, os treze testes Vitest e o build Vite. O frontend React usa um documento Zod versão 1 em IndexedDB via Dexie. Uma revisão otimista impede sobrescrita entre abas. O painel deriva indicadores de reviews, sessions e tasks por funções puras. A aplicação original e o arquivo trilora-v1 permanecem independentes.
+
+Não havia identidade remota, API, worker, notificações persistentes, armazenamento documental ou provedor de modelos. Reutilizamos os IDs das disciplinas, conceitos, atividades, tarefas e cartões e o serviço de gravação validada do Atlas. O servidor mantém documentos privados, fragmentos, conversas, projeções acadêmicas autorizadas e decisões de acompanhamento. Um snapshot do monitor tem revisão própria para impedir que uma aba antiga reponha dados no servidor. A projeção não escreve sobre os cadastros locais.
+
+O banco PostgreSQL recebe migrações aditivas numeradas e pgvector. As funções novas são opcionais. Riscos incluem vazamento entre contas, material indevido em prompts, exposição de reflexões, custo de inferência, falha de gravação e interpretações pedagógicas excessivas. Não copiar reflexões livres para o monitor. A raiz não contém licença aberta explícita. Avaliar direitos sobre textos, consentimento e responsabilidades institucionais antes de distribuir.

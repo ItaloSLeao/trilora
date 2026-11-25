@@ -1,0 +1,22 @@
+# Fundamentos da integração educacional
+
+A pergunta pedagógica do Atlas é se um estudante consegue escolher uma prática, conferir a evidência que motivou a escolha e ajustar o estudo seguinte. Uma sugestão aceita registra uma decisão. Uma medida de aprendizagem requer observar o que o estudante consegue recuperar ou explicar depois.
+
+| Decisão de projeto | Fundamento e alcance | Hipótese específica a avaliar |
+| --- | --- | --- |
+| Associar o tutor a uma atividade, um conceito e um objetivo observável | Tchounikine (2011) situa o software na atividade educativa. Bassani et al. (2006) articulam aspectos pedagógicos, computacionais, de interação e colaboração. Benitti et al. (2005) vinculam concepção, elaboração e experimentação. | Em uma sessão observada, o estudante explica o objetivo da prática e verifica se a questão gerada corresponde a ele. |
+| Representar um pré-requisito e permitir ao estudante conferir a sugestão | Isotani et al. (2009) discutem representação de relações entre conhecimentos. A adequação curricular da relação cadastrada depende do contexto. | Um docente verifica se retomar o conceito indicado ajuda a compreender a dificuldade relatada. |
+| Mostrar evidência, justificativa e ação para cada recomendação | Zimmerman (2002) articula planejamento, execução e autorreflexão. Hattie e Timperley (2007) discutem feedback sobre objetivo, progresso e próximo passo. | O estudante distingue uma autoavaliação sobre um cartão de uma conclusão sobre toda a disciplina e pode justificar aceitar ou rejeitar a sugestão. |
+| Dar oportunidade de responder antes de consultar a explicação e praticar em dias diferentes | Roediger e Karpicke (2006), Cepeda et al. (2006) e Dunlosky et al. (2013) sustentam o interesse da recuperação ativa e da distribuição temporal em condições específicas. | Comparar a recuperação posterior em questão inédita, controlando conteúdo e tempo disponível. Os pesos e limiares do motor precisam de avaliação própria. |
+
+As referências primárias, os limites de acesso às obras e o protocolo de piloto com estudantes e docentes estão na [fundamentação pedagógica do Atlas](../../atlas/docs/pedagogia.md).
+
+## O que a recuperação documental acrescenta
+
+Lewis et al. combinaram recuperação de passagens e geração em tarefas de linguagem que exigem conhecimento externo. Naquelas tarefas, consultar uma memória documental ofereceu vantagens sobre sistemas de comparação. Para o Atlas, a decisão de engenharia é entregar passagens do material autorizado junto à pergunta. A presença de um trecho recuperado permite inspecionar a origem. A fidelidade de cada afirmação depende da correspondência entre a resposta e aquele trecho. O método de fusão, o tamanho dos fragmentos e a utilidade das pistas para estudar em português exigem medições no produto. Foi consultado o resumo dos autores. [Lewis et al., 2020, NeurIPS](https://arxiv.org/abs/2005.11401)
+
+A orientação da UNESCO inclui agência humana, adequação à idade, privacidade e avaliação pedagógica. No piloto, o estudante deve conseguir identificar o material compartilhado, pedir uma pista, conferir a origem da resposta e corrigir ou descartar o exercício antes de usá-lo. Uma instituição precisa avaliar a finalidade do uso, a participação de menores, a acessibilidade e as condições do provedor antes de uma oferta a estudantes. Foi consultada a apresentação oficial do guia de 2023. [Miao e Holmes, UNESCO](https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research)
+
+A OWASP descreve riscos de instruções em conteúdo recuperado e de mistura de dados entre usuários em índices vetoriais. Isso fundamenta requisitos verificáveis de filtragem por proprietário e seleção de documentos, referências com origem validada e confirmação de ações persistentes pelo estudante. A avaliação precisa examinar isolamento e fidelidade separadamente. A aplicação pode citar uma fonte permitida e ainda interpretá-la incorretamente. Foram consultadas as categorias de risco do projeto OWASP de 2025. [OWASP LLM01](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) · [OWASP LLM08](https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/)
+
+Os testes de software verificam comportamentos técnicos sob condições observadas. Ganho de retenção, utilidade da priorização personalizada e adequação das questões geradas permanecem hipóteses para investigação com participantes.
