@@ -182,7 +182,7 @@ def documents(offset: int = Query(0, ge=0), owner=User):
 async def upload(
     request: Request,
     name: str = Query(max_length=200),
-    subject: str = Query(min_length=1, max_length=128),
+    subject: str = Query("", max_length=128),
     concept: str = Query("", max_length=128),
     owner=User,
 ):
@@ -265,8 +265,8 @@ def remove_doc(key: UUID, owner=User):
 def create_conversation(body: Thread, owner=User):
     with connect() as db:
         rows = db.execute(
-            "SELECT id FROM document WHERE id=ANY(%s) AND owner=%s AND subject=%s AND (concept='' OR %s='' OR concept=%s) AND status='pronto' FOR SHARE",
-            (body.docs, owner, body.subject, body.concept, body.concept),
+            "SELECT id FROM document WHERE id=ANY(%s) AND owner=%s AND (%s='' OR subject='' OR subject=%s) AND (concept='' OR %s='' OR concept=%s) AND status='pronto' FOR SHARE",
+            (body.docs, owner, body.subject, body.subject, body.concept, body.concept),
         ).fetchall()
         if {r["id"] for r in rows} != set(body.docs):
             raise HTTPException(422, "Seleção de documentos indisponível.")

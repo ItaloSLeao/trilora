@@ -120,7 +120,7 @@ def retrieve(db, owner, thread, query, provider):
       1-(embedding <=> %s::vector) AS similarity,
       ts_rank_cd(to_tsvector('portuguese',body),plainto_tsquery('portuguese',%s)) AS lexical
       FROM chunk c JOIN document d ON d.id=c.doc
-      WHERE owner=%s AND d.subject=%s AND d.id=ANY(%s) AND status='pronto' AND model=%s
+      WHERE owner=%s AND (%s='' OR d.subject='' OR d.subject=%s) AND d.id=ANY(%s) AND status='pronto' AND model=%s
     ), ranks AS (SELECT *,rank() OVER(ORDER BY similarity DESC) AS vr,rank() OVER(ORDER BY lexical DESC) AS lr FROM candidates)
     SELECT * FROM ranks WHERE similarity >= %s OR lexical>0
     ORDER BY (1.0/(60+vr)+CASE WHEN lexical>0 THEN %s/(60+lr) ELSE 0 END) DESC,id LIMIT 5""",
@@ -128,6 +128,7 @@ def retrieve(db, owner, thread, query, provider):
             str(vector),
             query,
             owner,
+            thread["subject"],
             thread["subject"],
             thread["docs"],
             provider.embedding_model,

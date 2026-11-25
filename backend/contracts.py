@@ -87,7 +87,7 @@ class Preferences(Input):
 
 
 class Thread(Input):
-    subject: Key
+    subject: str = Field(default="", max_length=128)
     concept: str = Field(default="", max_length=128)
     docs: list[UUID] = Field(min_length=1, max_length=8)
 

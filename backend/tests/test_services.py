@@ -272,3 +272,32 @@ def test_indexing_retry_distinguishes_timeout_from_missing_model(clients):
     ready = a.get("/api/documents").json()[0]
     assert ready["status"] == "pronto"
     assert not ready["error"]
+
+
+def test_material_questions_without_academic_classification(clients):
+    a, b, model = clients
+    doc = a.post(
+        "/api/documents",
+        params={"name": "consulta.txt"},
+        content=b"clorofila absorve luz",
+    ).json()["id"]
+    assert index_once(model)
+    thread = a.post("/api/conversations", json={"docs": [doc]}).json()["id"]
+    answer = a.post(
+        f"/api/conversations/{thread}/messages",
+        json={"question": "O que a clorofila absorve?"},
+    )
+    assert answer.status_code == 200
+    assert answer.json()["sources"][0]["document"] == doc
+    assert b.post("/api/conversations", json={"docs": [doc]}).status_code == 422
+    contextual = a.post(
+        "/api/conversations", json={"subject": "s", "concept": "c", "docs": [doc]}
+    )
+    assert contextual.status_code == 200
+    assert (
+        a.post(
+            f"/api/conversations/{contextual.json()['id']}/messages",
+            json={"question": "O que a clorofila absorve?"},
+        ).status_code
+        == 200
+    )
