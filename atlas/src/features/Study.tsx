@@ -22,12 +22,40 @@ function Plan({ activityId }: { activityId: string }) {
     e.preventDefault()
     if (busy) return
     setBusy(true)
-    const plan = { id: crypto.randomUUID(), subject, goal, activity, timed }
+    const plan = {
+      id: crypto.randomUUID(),
+      subject,
+      goal: goal || crypto.randomUUID(),
+      activity: activity || crypto.randomUUID(),
+      timed,
+    }
     if (
-      (await save(
-        (d) => startStudy(d, plan, Date.now()),
-        'Sessão iniciada.',
-      )) &&
+      (await save((d) => {
+        const next = {
+          ...d,
+          goals: goal
+            ? d.goals
+            : [
+                ...d.goals,
+                {
+                  id: plan.goal,
+                  subject,
+                  name:
+                    'Estudar ' +
+                    (d.subjects.find((s) => s.id === subject)?.name ??
+                      'a disciplina'),
+                  done: false,
+                },
+              ],
+          activities: activity
+            ? d.activities
+            : [
+                ...d.activities,
+                { id: plan.activity, goal: plan.goal, name: 'Prática livre' },
+              ],
+        }
+        return startStudy(next, plan, Date.now())
+      }, 'Sessão iniciada.')) &&
       timed
     )
       clock.resume(plan.id, 0)
@@ -37,7 +65,7 @@ function Plan({ activityId }: { activityId: string }) {
   const activities = data.activities.filter((a) => a.goal === goal)
   return (
     <Panel title="Planejar a sessão">
-      <form onSubmit={start}>
+      <form id="study-plan" onSubmit={start}>
         <Pick
           label="Disciplina"
           value={subject}
@@ -49,7 +77,8 @@ function Plan({ activityId }: { activityId: string }) {
           }}
         />
         <Pick
-          label="Objetivo"
+          label="Objetivo (opcional)"
+          optional
           value={goal}
           rows={goals}
           set={(v) => {
@@ -58,7 +87,8 @@ function Plan({ activityId }: { activityId: string }) {
           }}
         />
         <Pick
-          label="Atividade"
+          label="Atividade (opcional)"
+          optional
           value={activity}
           rows={activities}
           set={setActivity}
@@ -67,16 +97,6 @@ function Plan({ activityId }: { activityId: string }) {
           <Empty>
             <a href="#conhecimentos/subjects">Cadastre uma disciplina</a> para
             montar o plano.
-          </Empty>
-        ) : !goals.length ? (
-          <Empty>
-            <a href="#conhecimentos/goals">Crie um objetivo em andamento</a>{' '}
-            nesta disciplina.
-          </Empty>
-        ) : goal && !activities.length ? (
-          <Empty>
-            <a href="#conhecimentos/activities">Cadastre uma atividade</a> para
-            este objetivo.
           </Empty>
         ) : null}
         <label className="inline-check">
@@ -88,7 +108,7 @@ function Plan({ activityId }: { activityId: string }) {
           Usar cronômetro
         </label>
         <div className="actions">
-          <button className="primary" disabled={!activity || busy}>
+          <button className="primary" disabled={!subject || busy}>
             <Play size={17} />
             Iniciar sessão
           </button>
@@ -158,6 +178,7 @@ export function Study({ activityId }: { activityId: string }) {
   const { active } = data
   const clock = useClock()
   const [busy, setBusy] = useState(false)
+  const [stepHint, hint] = useState('')
   const stop = async (next: 'practice' | 'reflect') => {
     if (!active || busy) return
     setBusy(true)
@@ -173,7 +194,33 @@ export function Study({ activityId }: { activityId: string }) {
       <div className="study-layout">
         <div className="steps">
           {['Planejar', 'Praticar', 'Refletir'].map((s, i) => (
-            <span
+            <button
+              type="button"
+              disabled={busy || clock.pending}
+              onClick={() => {
+                hint('')
+                if (!active) {
+                  if (i === 2)
+                    hint('Inicie uma prática para registrar a reflexão.')
+                  else if (i === 1)
+                    (
+                      document.getElementById('study-plan') as HTMLFormElement
+                    )?.requestSubmit()
+                  else
+                    document
+                      .querySelector<HTMLInputElement>('#study-plan select')
+                      ?.focus()
+                } else if (i === 2 && active.phase === 'practice')
+                  void stop('reflect')
+                else if (i === 0)
+                  hint(
+                    'Seu plano está registrado na sessão abaixo. Conclua a sessão para planejar outra.',
+                  )
+                else
+                  document
+                    .querySelector<HTMLElement>('.study-layout .panel')
+                    ?.scrollIntoView({ block: 'nearest' })
+              }}
               key={s}
               aria-current={
                 i === (!active ? 0 : active.phase === 'practice' ? 1 : 2)
@@ -182,9 +229,14 @@ export function Study({ activityId }: { activityId: string }) {
               }
             >
               {s}
-            </span>
+            </button>
           ))}
         </div>
+        {stepHint && (
+          <p role="status" className="hint">
+            {stepHint}
+          </p>
+        )}
         {!active ? (
           <Plan key={activityId} activityId={activityId} />
         ) : (

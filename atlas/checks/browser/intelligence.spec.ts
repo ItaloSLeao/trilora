@@ -42,19 +42,16 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page.getByLabel('Usuário').fill(process.env.ATLAS_QA_LOGIN!)
   await page.getByLabel('Senha').fill(process.env.ATLAS_QA_PASSWORD!)
   await page.getByRole('button', { name: 'Conectar', exact: true }).click()
+  await page.getByRole('link', { name: /Abrir perfil/ }).click()
   await page.getByLabel('Início do silêncio (hora)').fill('0')
   await page.getByLabel('Fim do silêncio (hora)').fill('0')
   await page.getByLabel('Limiar de erros').fill('1')
   await page.getByRole('button', { name: 'Salvar preferências' }).click()
   await expect(page.getByText('Preferências salvas.')).toBeVisible()
+  await page.getByRole('link', { name: 'Monitor', exact: true }).click()
   await page.getByLabel('Compartilhar alterações futuras').check()
   await page.getByRole('link', { name: 'Tutor', exact: true }).click()
-  await page
-    .getByRole('button', { name: 'Biblioteca de documentos', exact: true })
-    .click()
-  await page
-    .getByRole('combobox', { name: 'Conceito do tutor' })
-    .selectOption('c')
+  await page.getByRole('link', { name: 'Biblioteca', exact: true }).click()
   await page
     .getByLabel('PDF textual, DOCX, TXT ou Markdown')
     .setInputFiles(process.env.ATLAS_QA_PDF!)
@@ -62,7 +59,8 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page
     .getByRole('checkbox', { name: /botanica.pdf/ })
     .check({ timeout: 20000 })
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.getByRole('link', { name: 'Tutor', exact: true }).click()
+  await page.getByRole('checkbox', { name: /botanica.pdf/ }).check()
   await page.getByText('Modo e complexidade', { exact: true }).click()
   await page.getByLabel('Modo pedagógico').selectOption('Praticar')
   await page
@@ -74,6 +72,7 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
     'clorofila absorve luz',
   )
   await page.getByRole('button', { name: 'Revisar para flashcard' }).click()
+  await page.getByLabel('Conceito do cartão (opcional)').selectOption('c')
   await page.getByRole('button', { name: 'Aprovar e salvar flashcard' }).click()
   await expect(page.getByText('Cartão salvo no Atlas.')).toBeVisible()
   await page.getByRole('button', { name: 'Nova conversa', exact: true }).click()
@@ -87,7 +86,7 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   const history = page.getByRole('complementary', {
     name: 'Histórico de conversas',
   })
-  await history.getByRole('button', { name: /Biologia/ }).click()
+  await history.getByRole('button', { name: /Crie uma pergunta/ }).click()
   await expect(
     page.getByRole('button', { name: 'Revisar para flashcard' }),
   ).toBeVisible()
@@ -97,16 +96,12 @@ test('PDF, fontes, aprovação, tentativa e adaptação contextual', async ({
   await page.getByRole('button', { name: 'Errei', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Ver resumo' })).toBeVisible()
   await page.keyboard.press('Escape')
-  await page.getByRole('link', { name: 'Acompanhamento', exact: true }).click()
+  await page.getByRole('link', { name: 'Monitor', exact: true }).click()
   await expect(async () => {
     await page.getByRole('button', { name: 'Atualizar central' }).click()
     await expect(page.getByText(/Clorofila: 1 erro/).first()).toBeVisible()
   }).toPass({ timeout: 10000 })
   await page.getByRole('link', { name: 'Praticar com o Tutor' }).first().click()
-  await page.getByText('Contexto e documentos', { exact: true }).click()
-  await expect(
-    page.getByRole('combobox', { name: 'Conceito do tutor' }),
-  ).toHaveValue('c')
   await page.getByRole('checkbox', { name: /botanica.pdf/ }).check()
   await page
     .getByLabel('Pergunta', { exact: true })
@@ -173,12 +168,9 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
     /Marque pelo menos um documento/,
     { timeout: 10000 },
   )
-  await page.getByText('Contexto e documentos', { exact: true }).click()
   await page.getByRole('checkbox', { name: /capítulo.pdf/ }).check()
   await expect(send).toBeEnabled()
-  await page
-    .getByRole('button', { name: 'Biblioteca de documentos', exact: true })
-    .click()
+  await page.getByRole('link', { name: 'Biblioteca', exact: true }).click()
   await page.getByLabel('PDF textual, DOCX, TXT ou Markdown').setInputFiles({
     name: 'livro-grande.pdf',
     mimeType: 'application/pdf',
@@ -188,7 +180,8 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
     page.getByRole('button', { name: 'Enviar e indexar' }),
   ).toBeDisabled()
   await expect(page.getByRole('alert')).toContainText('O arquivo excede 4 MiB')
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.getByRole('link', { name: 'Tutor', exact: true }).click()
+  await page.getByRole('checkbox', { name: /capítulo.pdf/ }).check()
   await expect(send).toBeEnabled()
   await page.setViewportSize({ width: 320, height: 850 })
   await expect(
@@ -199,4 +192,39 @@ test('explica quando a pergunta aguarda indexação ou seleção da fonte', asyn
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true)
+})
+
+test('prática livre e perfil acessíveis pela navegação', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Nova disciplina' }).click()
+  await page
+    .getByRole('dialog')
+    .getByLabel('Nome', { exact: true })
+    .fill('Física')
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Salvar', exact: true })
+    .click()
+  await page.getByRole('link', { name: 'Modo de estudo', exact: true }).click()
+  await page.getByRole('button', { name: 'Refletir', exact: true }).click()
+  await expect(
+    page.getByText('Inicie uma prática para registrar a reflexão.'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Praticar', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Pausar', exact: true }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Refletir', exact: true }).click()
+  await page
+    .getByLabel('O que você conseguiu realizar?')
+    .fill('Resolvi uma equação.')
+  await page.getByRole('button', { name: 'Salvar sessão e reflexão' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Progresso', exact: true }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Entrar no perfil' }).click()
+  await expect(page.getByLabel('Usuário')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Perfil', exact: true }),
+  ).toBeVisible()
 })

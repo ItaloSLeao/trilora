@@ -31,6 +31,8 @@ function App() {
     progresso: <Progress today={today} />,
     inteligencia: <Intelligence />,
     tutor: <TutorPage key={tab} tab={tab} />,
+    biblioteca: <TutorPage tab="" libraryPage />,
+    perfil: <Intelligence profile />,
     dados: <Portability />,
   }
   return <Shell page={page}>{views[page]}</Shell>

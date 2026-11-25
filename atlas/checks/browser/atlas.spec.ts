@@ -107,7 +107,7 @@ test('planejar, praticar, avaliar e refletir com registros reais', async ({
   await go(page, 'Visão geral')
   await page.getByRole('link', { name: /Desenhar o transporte/ }).click()
   await expect(
-    page.getByRole('combobox', { name: 'Atividade', exact: true }),
+    page.getByRole('combobox', { name: 'Atividade (opcional)', exact: true }),
   ).toHaveValue(/.+/)
   await page.getByRole('button', { name: 'Iniciar sessão' }).click()
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible()

@@ -1,4 +1,4 @@
-import { BookOpen, MessageCircle, Plus } from 'lucide-react'
+import { BookOpen, MessageCircle, Plus, Send, Paperclip } from 'lucide-react'
 import { ServiceLogin } from './Center'
 import './tutor.css'
 import { TutorAttempt } from './TutorAttempt'
@@ -20,8 +20,14 @@ interface Message {
   question: string
   result: Result
 }
-export function TutorPage({ tab }: { tab: string }) {
-  const { user, logout } = useRemote()
+export function TutorPage({
+  tab,
+  libraryPage = false,
+}: {
+  tab: string
+  libraryPage?: boolean
+}) {
+  const { user } = useRemote()
   let conceptId = ''
   try {
     conceptId = decodeURIComponent(tab)
@@ -30,30 +36,35 @@ export function TutorPage({ tab }: { tab: string }) {
   }
   return (
     <>
-      <PageTitle
-        title="Tutor"
-        subtitle="Converse sobre seus materiais de estudo."
-      >
-        {user && (
-          <button className="secondary" onClick={logout}>
-            Sair de {user}
-          </button>
-        )}
-      </PageTitle>
-      {user ? <Tutor conceptId={conceptId} /> : <ServiceLogin />}
+      {!libraryPage && <h1 className="sr-only">Tutor</h1>}
+      {libraryPage && (
+        <PageTitle
+          title="Biblioteca"
+          subtitle="Seus materiais para consultar com o Tutor."
+        />
+      )}
+      {user ? (
+        <Tutor conceptId={conceptId} libraryPage={libraryPage} />
+      ) : (
+        <ServiceLogin />
+      )}
     </>
   )
 }
 
-function Tutor({ conceptId }: { conceptId: string }) {
+function Tutor({
+  conceptId,
+  libraryPage,
+}: {
+  conceptId: string
+  libraryPage: boolean
+}) {
   const { data } = useWorkspace(),
     { call, stream, file: getFile } = useRemote(),
     { run, error, busy } = useAction()
   const upload = useAction()
   const [subject, subjectSet] = useState(
-      data.concepts.find((c) => c.id === conceptId)?.subject ??
-        data.subjects[0]?.id ??
-        '',
+      data.concepts.find((c) => c.id === conceptId)?.subject ?? '',
     ),
     [concept, conceptSet] = useState(conceptId)
   const [docs, setDocs] = useState<Doc[]>([]),
@@ -72,7 +83,7 @@ function Tutor({ conceptId }: { conceptId: string }) {
     [draft, edit] = useState<Result>(),
     [status, say] = useState('')
   const [practice, practiceCard] = useState('')
-  const [section, showSection] = useState<'chat' | 'library'>('chat')
+  const section = libraryPage ? 'library' : 'chat'
   const [pendingQuestion, setPendingQuestion] = useState('')
   const [pollError, setPollError] = useState('')
   const uploadInput = useRef<HTMLInputElement>(null)
@@ -91,7 +102,9 @@ function Tutor({ conceptId }: { conceptId: string }) {
   }, [messages, pendingQuestion, provisional, section])
 
   const uploadSizeError = file && file.size > maxDocumentBytes
-  const library = docs.filter((d) => d.subject === subject)
+  const library = docs.filter(
+    (d) => !subject || !d.subject || d.subject === subject,
+  )
   const pendingDocuments = library.some((d) =>
     ['pendente', 'processando'].includes(d.status),
   )
@@ -189,7 +202,7 @@ function Tutor({ conceptId }: { conceptId: string }) {
       let key = thread
       if (!key) {
         const t = await call<{ id: string }>('conversations', 'POST', {
-          subject,
+          subject: concept ? subject : '',
           concept,
           docs: selected,
         })
@@ -229,22 +242,6 @@ function Tutor({ conceptId }: { conceptId: string }) {
   }
   return (
     <div className="stack">
-      <nav className="tabs tutor-tabs" aria-label="Área do tutor">
-        <button
-          type="button"
-          aria-pressed={section === 'chat'}
-          onClick={() => showSection('chat')}
-        >
-          Chat
-        </button>
-        <button
-          type="button"
-          aria-pressed={section === 'library'}
-          onClick={() => showSection('library')}
-        >
-          Biblioteca de documentos
-        </button>
-      </nav>
       {error && (
         <p role="alert" className="error">
           {error}
@@ -256,7 +253,8 @@ function Tutor({ conceptId }: { conceptId: string }) {
           <Panel title="Classificação do documento">
             {' '}
             <Pick
-              label="Disciplina do tutor"
+              label="Disciplina (opcional)"
+              optional
               rows={data.subjects}
               value={subject}
               set={(v) => {
@@ -264,16 +262,6 @@ function Tutor({ conceptId }: { conceptId: string }) {
                 subjectSet(v)
                 conceptSet('')
                 setGoal('')
-              }}
-            />
-            <Pick
-              label="Conceito do tutor"
-              optional
-              rows={data.concepts.filter((c) => c.subject === subject)}
-              value={concept}
-              set={(v) => {
-                reset()
-                conceptSet(v)
               }}
             />
           </Panel>
@@ -293,9 +281,7 @@ function Tutor({ conceptId }: { conceptId: string }) {
             </Field>
             <button
               className="primary"
-              disabled={
-                !subject || !file || uploadSizeError || upload.busy || busy
-              }
+              disabled={!file || uploadSizeError || upload.busy || busy}
               onClick={() =>
                 upload.run(async () => {
                   if (!file) return
@@ -467,59 +453,32 @@ function Tutor({ conceptId }: { conceptId: string }) {
                     : 'Nova conversa'}
                 </h2>
                 <p className="hint">
-                  {data.subjects.find((s) => s.id === subject)?.name ??
-                    'Selecione uma disciplina'}
+                  {selected.length
+                    ? selected.length + ' material(is) selecionado(s)'
+                    : 'Consulta aos seus materiais'}
                 </p>
               </div>
               <button
                 className="secondary"
-                onClick={() => showSection('library')}
+                onClick={() => {
+                  location.hash = 'biblioteca'
+                }}
               >
                 <BookOpen size={17} />
                 Biblioteca
               </button>
             </header>
-            <details className="tutor-options">
+            <details
+              className="tutor-options source-picker"
+              open={!thread && !selected.length}
+            >
               <summary>
-                Contexto e documentos{' '}
-                {selected.length > 0 && `(${selected.length})`}
+                <Paperclip size={16} />
+                Materiais {selected.length > 0 && `(${selected.length})`}
               </summary>
               <fieldset disabled={busy}>
-                <Pick
-                  label="Disciplina do tutor"
-                  rows={data.subjects}
-                  value={subject}
-                  set={(v) => {
-                    reset()
-                    subjectSet(v)
-                    conceptSet('')
-                    setGoal('')
-                  }}
-                />
-                <Pick
-                  label="Conceito do tutor"
-                  optional
-                  rows={data.concepts.filter((c) => c.subject === subject)}
-                  value={concept}
-                  set={(v) => {
-                    reset()
-                    conceptSet(v)
-                  }}
-                />
-                <Pick
-                  label="Objetivo compartilhado"
-                  optional
-                  rows={data.goals.filter((g) => g.subject === subject)}
-                  value={goal}
-                  set={setGoal}
-                />
-
                 {library
-                  .filter(
-                    (d) =>
-                      d.status === 'pronto' &&
-                      (!concept || !d.concept || concept === d.concept),
-                  )
+                  .filter((d) => d.status === 'pronto')
                   .map((d) => (
                     <label key={d.id} className="inline-check">
                       <input
@@ -537,6 +496,16 @@ function Tutor({ conceptId }: { conceptId: string }) {
                       {d.name}
                     </label>
                   ))}
+                {!library.some((d) => d.status === 'pronto') && (
+                  <p className="hint">
+                    {sourceHint} <a href="#biblioteca">Abrir biblioteca</a>
+                  </p>
+                )}
+                {thread && (
+                  <small>
+                    Use Nova conversa para escolher outros materiais.
+                  </small>
+                )}
               </fieldset>
             </details>
             <div
@@ -643,7 +612,7 @@ function Tutor({ conceptId }: { conceptId: string }) {
                 void run(submit)
               }}
             >
-              <details className="tutor-options">
+              <details className="tutor-options composer-settings">
                 <summary>Modo e complexidade</summary>
                 <Field label="Modo pedagógico">
                   <select
@@ -691,6 +660,22 @@ function Tutor({ conceptId }: { conceptId: string }) {
                   ref={composer}
                   placeholder="Pergunte sobre o material selecionado…"
                   rows={2}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === 'Enter' &&
+                      !e.shiftKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault()
+                      if (
+                        !busy &&
+                        selected.length > 0 &&
+                        selected.length <= 8 &&
+                        question.trim().length >= 2
+                      )
+                        e.currentTarget.form?.requestSubmit()
+                    }
+                  }}
                   required
                   minLength={2}
                   maxLength={2000}
@@ -699,9 +684,8 @@ function Tutor({ conceptId }: { conceptId: string }) {
                 />
               </Field>
               <p className="hint tutor-privacy">
-                Ao enviar, o modelo recebe a pergunta, o objetivo escolhido, os
-                trechos recuperados e até três trocas anteriores. A pergunta e a
-                resposta serão guardadas no histórico desta conversa.
+                As respostas usam os materiais selecionados. A conversa fica
+                salva na sua conta.
               </p>
               <p id="tutor-source-hint" role="status" className="hint">
                 {sourceHint}
@@ -711,7 +695,8 @@ function Tutor({ conceptId }: { conceptId: string }) {
                 disabled={busy || !selected.length || selected.length > 8}
                 className="primary"
               >
-                Enviar pergunta
+                <Send size={18} />
+                <span>Enviar pergunta</span>
               </button>
             </form>
           </section>
@@ -748,7 +733,8 @@ function ApprovedCard({
   close: (id: string) => void
 }) {
   const { data, save } = useWorkspace(),
-    decks = data.decks.filter((d) => d.subject === subject)
+    decks = data.decks.filter((d) => !subject || d.subject === subject)
+  const [cardConcept, setCardConcept] = useState(concept)
   const [deck, setDeck] = useState(decks[0]?.id ?? ''),
     [question, setQ] = useState(draft.question),
     [answer, setA] = useState(draft.expected)
@@ -761,6 +747,15 @@ function ApprovedCard({
         set={setDeck}
       />
       {!decks.length && <a href="#revisao">Cadastrar baralho</a>}
+      <Pick
+        label="Conceito do cartão (opcional)"
+        optional
+        rows={data.concepts.filter(
+          (c) => c.subject === data.decks.find((d) => d.id === deck)?.subject,
+        )}
+        value={cardConcept}
+        set={setCardConcept}
+      />
       <Field label="Pergunta revisada">
         <textarea
           maxLength={500}
@@ -782,7 +777,7 @@ function ApprovedCard({
           const card = {
             id: crypto.randomUUID(),
             deck,
-            concept: concept || null,
+            concept: cardConcept || null,
             question,
             answer,
           }

@@ -12,11 +12,13 @@ import {
   Map,
   Menu,
   MessagesSquare,
+  UserRound,
   PanelLeftClose,
   ShieldCheck,
   Timer,
   type LucideIcon,
 } from 'lucide-react'
+import { useRemote } from '../intelligence/remote'
 import { pages, type Page } from '../application/navigation'
 
 const icons: Record<Page, LucideIcon> = {
@@ -28,16 +30,22 @@ const icons: Record<Page, LucideIcon> = {
   progresso: ChartNoAxesColumnIncreasing,
   inteligencia: Compass,
   tutor: MessagesSquare,
+  biblioteca: BookOpen,
+  perfil: UserRound,
   dados: Database,
 }
 const groups: { title: string; keys: Page[] }[] = [
-  { title: 'Meu espaço', keys: ['painel', 'agenda', 'conhecimentos'] },
+  {
+    title: 'Meu espaço',
+    keys: ['painel', 'agenda', 'conhecimentos', 'inteligencia', 'biblioteca'],
+  },
   {
     title: 'Aprendizagem',
-    keys: ['revisao', 'estudo', 'progresso', 'tutor', 'inteligencia'],
+    keys: ['revisao', 'estudo', 'progresso', 'tutor'],
   },
 ]
 export function Shell({ page, children }: { page: Page; children: ReactNode }) {
+  const { user } = useRemote()
   const [open, setOpen] = useState(false)
   const main = useRef<HTMLElement>(null)
   const previous = useRef(page)
@@ -127,16 +135,23 @@ export function Shell({ page, children }: { page: Page; children: ReactNode }) {
             <ChevronRight size={14} />
             <strong>{pages[page]}</strong>
           </div>
-          <span className="date-stamp">
-            <CalendarDays size={16} />
-            {new Date().toLocaleDateString('pt-BR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </span>
+          <a
+            href="#perfil"
+            className="profile-link"
+            aria-label={user ? 'Abrir perfil de ' + user : 'Entrar no perfil'}
+          >
+            <span className="profile-avatar">
+              <UserRound size={19} />
+            </span>
+            <span>{user || 'Entrar'}</span>
+          </a>
         </header>
-        <main id="conteudo" tabIndex={-1} ref={main}>
+        <main
+          className={page === 'tutor' ? 'chat-page' : undefined}
+          id="conteudo"
+          tabIndex={-1}
+          ref={main}
+        >
           {children}
         </main>
         <footer className="app-footer">

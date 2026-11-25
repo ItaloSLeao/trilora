@@ -49,3 +49,7 @@ No reteste direcionado após a mudança de contrato, o Ollama devolveu abstinên
 ## Regressão da interface do Tutor
 
 O roteiro em Chromium verifica a área própria do Tutor, a consulta de indexação em segundo plano, o chat com estados de falta de fonte, a abertura e recuperação de conversas e o layout a 320 px. A suíte PostgreSQL diferencia expiração de uma chamada Ollama, modelo ausente e reprocessamento manual. O teste do script unificado subiu a interface, a API e os workers e indexou um PDF sintético com o Ollama local. Documentos com falha anterior permanecem disponíveis para reprocessamento pela biblioteca.
+
+## Consulta simples e perfil
+
+A revisão de navegação passou nos seis cenários Chromium, incluindo login pelo Perfil, consulta documental com classificação em branco, retorno pelo Monitor, nova conversa, histórico, prática livre e reflexão. O backend passou em nove testes e o Atlas em 15 testes Vitest. A inspeção visual cobriu o chat em desktop e celular. A confirmação das respostas no navegador usa provedor de teste explícito. Tipagem e build de produção passaram.

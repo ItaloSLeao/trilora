@@ -5,13 +5,17 @@ import { Panel, Field, PageTitle } from '../ui/components'
 import { projection } from './projection'
 import { useAction, useRemote, type Notice, type State } from './remote'
 
-export function Intelligence() {
+export function Intelligence({ profile = false }: { profile?: boolean }) {
   const { user, logout } = useRemote()
   return (
     <>
       <PageTitle
-        title="Acompanhamento acadêmico"
-        subtitle="Acompanhe alertas, recomendações e seu resumo semanal."
+        title={profile ? 'Perfil' : 'Monitor'}
+        subtitle={
+          profile
+            ? 'Sua conta e preferências.'
+            : 'Alertas, sugestões e resumo semanal.'
+        }
       >
         {user && (
           <button className="secondary" onClick={logout}>
@@ -19,7 +23,7 @@ export function Intelligence() {
           </button>
         )}
       </PageTitle>
-      {user ? <Monitor /> : <ServiceLogin />}
+      {user ? <Monitor profile={profile} /> : <ServiceLogin />}
     </>
   )
 }
@@ -82,7 +86,7 @@ interface Event {
   kind: string
   occurred: string
 }
-function Monitor() {
+function Monitor({ profile }: { profile: boolean }) {
   const { data } = useWorkspace(),
     { call, logout, syncing, setSync } = useRemote()
   const [state, set] = useState<State>(),
@@ -115,125 +119,133 @@ function Monitor() {
     <div className="stack">
       {error && <p role="alert">{error}</p>}
       <p role="status">{notice}</p>
-      <Panel title="Contexto autorizado">
-        <p>
-          Compartilhar com o servidor os títulos, vínculos, datas, durações e
-          resultados manuais do plano atual. Textos de reflexões, perguntas e
-          respostas dos cartões ficam no dispositivo. Cada envio substitui a
-          projeção desta conta.
-        </p>
-        <button
-          className="primary"
-          disabled={busy || !state || syncing}
-          onClick={() =>
-            run(async () => {
-              await call('projection', 'PUT', {
-                revision: state!.revision,
-                facts: JSON.parse(serialized),
-              })
-              await refresh()
-              say('Projeção atualizada.')
-            })
-          }
-        >
-          Compartilhar plano atual
-        </button>
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            disabled={!state}
-            checked={syncing}
-            onChange={(e) =>
-              setSync(e.target.checked && state ? state.revision : null)
-            }
-          />
-          Compartilhar alterações futuras enquanto a conta estiver conectada
-          nesta aba
-        </label>
-        <button className="text-btn" onClick={() => run(refresh)}>
-          Atualizar central
-        </button>
-      </Panel>
-      <Panel title="Recomendações">
-        {!notes.length && <p>Nenhuma recomendação disponível.</p>}
-        {notes.map((n) => (
-          <article className="history" key={n.id}>
-            <strong>{n.details.reason}</strong>
+      {!profile && (
+        <>
+          <Panel title="Contexto autorizado">
             <p>
-              {n.status} · prioridade {n.details.priority} ·{' '}
-              {new Date(n.created).toLocaleDateString('pt-BR')}
+              Compartilhar com o servidor os títulos, vínculos, datas, durações
+              e resultados manuais do plano atual. Textos de reflexões,
+              perguntas e respostas dos cartões ficam no dispositivo. Cada envio
+              substitui a projeção desta conta.
             </p>
-            <details>
-              <summary>Evidências</summary>
-              {n.details.evidence.map((id) => (
-                <p key={id}>
-                  {events.find((e) => e.id === id)?.kind ?? 'Registro anterior'}{' '}
-                  · {id.slice(0, 12)}
-                </p>
-              ))}
-            </details>
-            <div className="actions-inline">
-              {n.status === 'pendente' && (
-                <>
-                  <button
-                    className="secondary"
-                    onClick={() => run(() => decide(n, 'aceita'))}
-                  >
-                    Aceitar
-                  </button>
-                  <button onClick={() => run(() => decide(n, 'ignorada'))}>
-                    Ignorar
-                  </button>
-                </>
-              )}
-              {!n.seen && (
-                <button onClick={() => run(() => decide(n, 'lida'))}>
-                  Marcar lida
-                </button>
-              )}
-              {n.status === 'aceita' && (
-                <button onClick={() => run(() => decide(n, 'concluída'))}>
-                  Concluir
-                </button>
-              )}
-              <a
-                className="text-btn"
-                href={
-                  n.details.action === 'tutor'
-                    ? '#tutor/' + encodeURIComponent(n.details.concept)
-                    : '#' + n.details.action
+            <button
+              className="primary"
+              disabled={busy || !state || syncing}
+              onClick={() =>
+                run(async () => {
+                  await call('projection', 'PUT', {
+                    revision: state!.revision,
+                    facts: JSON.parse(serialized),
+                  })
+                  await refresh()
+                  say('Projeção atualizada.')
+                })
+              }
+            >
+              Compartilhar plano atual
+            </button>
+            <label className="inline-check">
+              <input
+                type="checkbox"
+                disabled={!state}
+                checked={syncing}
+                onChange={(e) =>
+                  setSync(e.target.checked && state ? state.revision : null)
                 }
-              >
-                {n.details.action === 'tutor'
-                  ? 'Praticar com o Tutor'
-                  : 'Abrir atividade'}
-              </a>
-            </div>
-          </article>
-        ))}
-      </Panel>
-      <Panel title="Resumo semanal">
-        {reports.map((r) => (
-          <details key={r.week}>
-            <summary>
-              Semana de {r.week} · {r.details.sessions} sessões ·{' '}
-              {r.details.reviews} revisões
-            </summary>
-            <p>
-              {r.details.correct} acertos em {r.details.reviews} tentativas.
-              Objetivos trabalhados:{' '}
-              {r.details.goals
-                .map((id) => data.goals.find((g) => g.id === id)?.name ?? id)
-                .join(', ') || 'nenhum'}
-              . Próximas tarefas: {r.details.future.join(', ') || 'nenhuma'}.
-            </p>
-            {r.details.next.map((s) => (
-              <p key={s}>{s}</p>
+              />
+              Compartilhar alterações futuras enquanto a conta estiver conectada
+              nesta aba
+            </label>
+            <button className="text-btn" onClick={() => run(refresh)}>
+              Atualizar central
+            </button>
+          </Panel>
+          <Panel title="Recomendações">
+            {!notes.length && <p>Nenhuma recomendação disponível.</p>}
+            {notes.map((n) => (
+              <article className="history" key={n.id}>
+                <strong>{n.details.reason}</strong>
+                <p>
+                  {n.status} · prioridade {n.details.priority} ·{' '}
+                  {new Date(n.created).toLocaleDateString('pt-BR')}
+                </p>
+                <details>
+                  <summary>Evidências</summary>
+                  {n.details.evidence.map((id) => (
+                    <p key={id}>
+                      {events.find((e) => e.id === id)?.kind ??
+                        'Registro anterior'}{' '}
+                      · {id.slice(0, 12)}
+                    </p>
+                  ))}
+                </details>
+                <div className="actions-inline">
+                  {n.status === 'pendente' && (
+                    <>
+                      <button
+                        className="secondary"
+                        onClick={() => run(() => decide(n, 'aceita'))}
+                      >
+                        Aceitar
+                      </button>
+                      <button onClick={() => run(() => decide(n, 'ignorada'))}>
+                        Ignorar
+                      </button>
+                    </>
+                  )}
+                  {!n.seen && (
+                    <button onClick={() => run(() => decide(n, 'lida'))}>
+                      Marcar lida
+                    </button>
+                  )}
+                  {n.status === 'aceita' && (
+                    <button onClick={() => run(() => decide(n, 'concluída'))}>
+                      Concluir
+                    </button>
+                  )}
+                  <a
+                    className="text-btn"
+                    href={
+                      n.details.action === 'tutor'
+                        ? '#tutor/' + encodeURIComponent(n.details.concept)
+                        : '#' + n.details.action
+                    }
+                  >
+                    {n.details.action === 'tutor'
+                      ? 'Praticar com o Tutor'
+                      : 'Abrir atividade'}
+                  </a>
+                </div>
+              </article>
             ))}
-          </details>
-        ))}
-      </Panel>
-      {state && (
+          </Panel>
+          <Panel title="Resumo semanal">
+            {reports.map((r) => (
+              <details key={r.week}>
+                <summary>
+                  Semana de {r.week} · {r.details.sessions} sessões ·{' '}
+                  {r.details.reviews} revisões
+                </summary>
+                <p>
+                  {r.details.correct} acertos em {r.details.reviews} tentativas.
+                  Objetivos trabalhados:{' '}
+                  {r.details.goals
+                    .map(
+                      (id) => data.goals.find((g) => g.id === id)?.name ?? id,
+                    )
+                    .join(', ') || 'nenhum'}
+                  . Próximas tarefas: {r.details.future.join(', ') || 'nenhuma'}
+                  .
+                </p>
+                {r.details.next.map((s) => (
+                  <p key={s}>{s}</p>
+                ))}
+              </details>
+            ))}
+          </Panel>
+        </>
+      )}
+      {profile && state && (
         <Panel title="Preferências">
           <PushControl />
           <form
@@ -352,13 +364,15 @@ function Monitor() {
           </button>
         </Panel>
       )}
-      <Panel title="Eventos recentes">
-        {events.slice(0, 30).map((e) => (
-          <p key={e.id}>
-            {e.kind} · {new Date(e.occurred).toLocaleString('pt-BR')}
-          </p>
-        ))}
-      </Panel>
+      {!profile && (
+        <Panel title="Eventos recentes">
+          {events.slice(0, 30).map((e) => (
+            <p key={e.id}>
+              {e.kind} · {new Date(e.occurred).toLocaleString('pt-BR')}
+            </p>
+          ))}
+        </Panel>
+      )}
     </div>
   )
 }

@@ -16,7 +16,7 @@ Abra o endereço local indicado pelo Vite, normalmente http://127.0.0.1:5173. Us
 
 ## Tutor e acompanhamento opcionais
 
-Na raiz do projeto, execute `./trilora-dev` para iniciar interface, API, banco, workers e Ollama local. Abra **Tutor** no menu para acessar o chat e a biblioteca. Para criar uma primeira conta e ver os pré-requisitos, siga o [guia do backend e dos modelos](../docs/ai-integration/deployment.md). A interface só envia o plano quando o estudante autoriza a projeção ou seu compartilhamento contínuo.
+Na raiz do projeto, execute `./trilora-dev` para iniciar interface, API, banco, workers e Ollama local. Use o **Perfil** no canto superior direito para entrar. **Tutor** abre o chat, **Biblioteca** organiza os arquivos e **Monitor** mostra as sugestões. Para criar uma primeira conta e ver os pré-requisitos, siga o [guia do backend e dos modelos](../docs/ai-integration/deployment.md). A interface só envia o plano quando o estudante autoriza a projeção ou seu compartilhamento contínuo.
 
 ## Primeiro percurso
 

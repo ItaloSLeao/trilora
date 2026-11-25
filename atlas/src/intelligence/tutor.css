@@ -161,3 +161,176 @@
   color: var(--muted);
   font-weight: 450;
 }
+
+/* Keep the conversation and composer visible inside the workspace. */
+.canvas main.chat-page {
+  max-width: none;
+  padding: 22px;
+}
+.chat-page > .stack {
+  height: calc(100dvh - 108px);
+  min-height: 430px;
+  gap: 8px;
+}
+.chat-page .tutor-layout {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: stretch;
+}
+.chat-page .tutor-history {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border-radius: 12px;
+}
+.tutor-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tutor-chat-heading {
+  flex-shrink: 0;
+  padding: 14px 20px;
+}
+.tutor-chat-heading h2 {
+  font-size: 1.1rem;
+}
+.source-picker {
+  flex-shrink: 0;
+}
+.source-picker summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.source-picker fieldset {
+  max-height: 155px;
+  overflow: auto;
+}
+.tutor-transcript {
+  flex: 1;
+  min-height: 100px;
+  max-height: none;
+  background: #f5f7fa;
+  padding: 24px;
+}
+.tutor-welcome {
+  min-height: 160px;
+}
+.tutor-human {
+  background: #1d675c;
+  color: #fff;
+  border-radius: 15px 15px 3px 15px;
+}
+.tutor-human small {
+  color: #dcf1e7;
+}
+.tutor-answer {
+  border-radius: 15px 15px 15px 3px;
+}
+.tutor-composer {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  border-top: 1px solid var(--line);
+}
+.tutor-composer .field {
+  grid-column: 1;
+  margin: 0;
+}
+.tutor-composer .field > span {
+  position: absolute;
+  clip-path: inset(50%);
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+}
+.tutor-composer textarea {
+  min-height: 56px;
+  max-height: 140px;
+  resize: vertical;
+}
+.tutor-composer .primary {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+}
+.tutor-composer .primary span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.tutor-composer .composer-settings {
+  grid-column: 1/-1;
+}
+.tutor-composer .composer-settings[open] {
+  max-height: 180px;
+  overflow: auto;
+}
+.tutor-composer .composer-settings .field > span {
+  position: static;
+  clip-path: none;
+  width: auto;
+  height: auto;
+}
+.tutor-composer > .tutor-privacy {
+  display: none;
+}
+.tutor-composer > .hint {
+  grid-column: 1/-1;
+  font-size: 0.81rem;
+}
+.profile-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  padding: 5px 8px;
+  border-radius: 24px;
+}
+.profile-avatar {
+  width: 33px;
+  height: 33px;
+  display: grid;
+  place-items: center;
+  background: #e0ece5;
+  border-radius: 50%;
+}
+@media (max-width: 810px) {
+  .canvas main.chat-page {
+    padding: 12px;
+  }
+  .chat-page > .stack {
+    height: calc(100dvh - 132px);
+  }
+  .chat-page .tutor-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(360px, 1fr) auto;
+    height: auto;
+  }
+  .chat-page .tutor-history {
+    max-height: 180px;
+  }
+  .chat-page .tutor-chat {
+    grid-row: 1;
+    min-height: 400px;
+  }
+  .tutor-transcript {
+    padding: 14px;
+  }
+  .tutor-chat-heading {
+    padding: 10px 12px;
+  }
+  .tutor-composer {
+    padding: 10px;
+  }
+}
+.tutor-chat-heading .secondary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
